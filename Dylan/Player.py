@@ -1,6 +1,9 @@
 import pygame
 from os.path import join
-import Main
+from Constants import (
+    WINDOW_WIDTH, 
+    WINDOW_HEIGHT
+                 )
 
 ###    Classes   ###
 ### Player Class ###
@@ -8,8 +11,9 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, groups):
         super().__init__(groups)
 
-#        self.image = pygame.image.load(join("images", "player.png")).convert_alpha()
-        self.rect = self.image.get_frect(center = (Main.WINDOW_WIDTH / 2, Main.WINDOW_HEIGHT / 2))
+        self.group = groups
+        self.image = pygame.image.load(join("TeamProject","images", "player.png")).convert_alpha()
+        self.rect = self.image.get_frect(center = (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2))
         self.mask = pygame.mask.from_surface(self.image)
         self.direction = pygame.Vector2()
         self.speed = 300
@@ -33,11 +37,11 @@ class Player(pygame.sprite.Sprite):
     def damage(self):
         self.health -= 1
         if (self.health <= 0):
-            Animation(player_death_frames, self.rect.midtop, Main.all_sprites)
+            Player_Animation(player_death_frames, self.rect.midtop, self.group)
             self.kill()
 
 ### Animation Class ###
-class Animation(pygame.sprite.Sprite):
+class Player_Animation(pygame.sprite.Sprite):
     def __init__(self, frames, pos, groups):
         super().__init__(groups)
         self.frames = frames
@@ -73,3 +77,7 @@ for i in range(21):
 #    player_move_frames.append(pygame.image.load(join(f"explosion\{i}.png")).convert_alpha())
     pass
     ###
+
+
+def player(groups):
+    player = Player(groups)
