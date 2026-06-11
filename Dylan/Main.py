@@ -43,9 +43,14 @@ while running:
             running = False
         recent_keys = pygame. key.get_just_pressed()
         if recent_keys[pygame.K_p ]:
-            enemy.append(Enemy((enemy_sprites, all_sprites)))
+            for enemies in enemy:
+                enemies.kill()
+                enemy.remove(enemies)
     ###
 
+    while (len(enemy) < 2):
+        enemy.append(Enemy((enemy_sprites, all_sprites)))
+    ###
     # Update
     all_sprites.update(dt)
 
