@@ -17,11 +17,6 @@ display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 enemy = []
 ######
 
-### Groups ###
-all_sprites = pygame.sprite.Group()
-enemy_sprites = pygame.sprite.Group()
-######
-
 ### Functions ###
 def collisions(dt):
     collision_sprites = pygame.sprite.spritecollide(player, enemy, True, pygame.sprite.collide_mask)
@@ -31,11 +26,10 @@ def collisions(dt):
     for enemy in enemy_sprites:
         collided_sprites_enemy = pygame.sprite.spritecollide(enemy, player, True, pygame.sprite.collide_mask)
         if collided_sprites_enemy and enemy.health == 0:
-            Enemy_Animation(enemy_death_frames, enemy.rect, all_sprites)
+            # Enemy_Animation(enemy_death_frames, enemy.rect, all_sprites)
             enemy.kill()
 
 
-player = Player(all_sprites)
 
 ### Running Loop ###
 while running:
