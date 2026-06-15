@@ -15,7 +15,7 @@ class Enemy(pygame.sprite.Sprite):
         super().__init__(groups)
 
         self.group       = groups
-        self.image       = pygame.image.load(join("TeamProject","animations","Chiron","Walking","Chiron_Walk_0.png")).convert_alpha()
+        self.image       = pygame.image.load(join("animations","Chiron","Walking","Chiron_Walk_0.png")).convert_alpha()
         self.image       = pygame.transform.scale_by(self.image, scale)
         self.rect        = self.image.get_frect(center = ((WINDOW_WIDTH * 0.8), (WINDOW_HEIGHT / 2)))
         self.mask        = pygame.mask.from_surface(self.image)
