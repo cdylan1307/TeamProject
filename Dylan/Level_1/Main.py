@@ -17,7 +17,7 @@ display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 background = pygame.image.load("TeamProject\images\lv1background.png")
 background = pygame.transform.scale(background, (WINDOW_WIDTH, WINDOW_HEIGHT))
 enemy = []
-start = True
+start = False
 border = pygame.Rect(325, 169, 880, 723)
 win = False
 ######
@@ -39,6 +39,7 @@ def collisions(dt):
 ### Chiron ###
 enemy = Enemy((all_sprites, enemy_sprites))
 
+
 ### Running Loop ###
 while running:
     # Event Loop
@@ -46,28 +47,20 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    while not win:
-        # Event Loop
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-                
-        recent_keys = pygame.key.get_just_pressed()
-        if recent_keys[pygame.K_KP_ENTER ] :
-            start = True
+    recent_keys = pygame.key.get_just_pressed()
+    if recent_keys[pygame.K_1]:
+        start = True
+            ###
+
+    if win != True:
 
         if start:
-            # Event Loop
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
             # Delta-Time
             dt = clock.tick() / 1000
             ###
 
             
-            recent_keys = pygame. key.get_just_pressed()
-            ###
+            
 
             # Update
             all_sprites.update(dt)
@@ -84,8 +77,12 @@ while running:
             enemy.rect.clamp_ip(border)
             ###
 
-    ### win cutscene
-    print ("win" * 10)
+    else:
+        ### win cutscene
+        print ("win" * 10)
+           
+
+    
 
 pygame.quit()
 
