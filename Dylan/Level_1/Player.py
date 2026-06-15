@@ -41,7 +41,7 @@ class Player(pygame.sprite.Sprite):
             self.kill()
         
     def flash(self):
-        self.kill()
+        pass #self.kill()
 
 ### Animation Class ###
 class Player_Animation(pygame.sprite.Sprite):

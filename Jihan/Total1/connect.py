@@ -1,6 +1,7 @@
 import pygame
 import sys
 import os
+from os.path import join
 pygame.init()
 # --------------------
 # Settings
@@ -48,8 +49,8 @@ if os.path.exists("settings.png"):
 # Load Game Background (Level 1)
 # --------------------
 game_bg = None
-if os.path.exists("forest.png"):
-    game_bg = pygame.image.load("forest.png").convert()
+if True: ##os.path.exists("forest.png"):
+    game_bg = pygame.image.load(join("TeamProject","Jihan","Total1","forest.png")).convert()
     game_bg = pygame.transform.scale(game_bg, (WIDTH, HEIGHT))
 # ==========================================================
 # ENEMY ATTACK / LEVEL 1 ASSETS & VARIABLES
