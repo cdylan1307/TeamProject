@@ -20,6 +20,7 @@ enemy = []
 start = False
 border = pygame.Rect(325, 169, 880, 723)
 win = False
+quit = False
 ######
 
 ### Functions ###
@@ -33,6 +34,7 @@ def collisions(dt):
         enemy.health -= 1
 
     if collided_sprites_enemy and enemy.health == 0:
+        global win
         win = True
         enemy.kill()
 
@@ -45,6 +47,7 @@ while running:
     # Event Loop
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            quit = True
             running = False
 
     recent_keys = pygame.key.get_just_pressed()
@@ -77,12 +80,17 @@ while running:
             enemy.rect.clamp_ip(border)
             ###
 
-    else:
-        ### win cutscene
-        print ("win" * 10)
+    ### win cutscene
+    while win:
+            new_surface = pygame.image.load("TeamProject\images\lv1background.png")
+            font = pygame.font.Font("TeamProject/text/Oxanium-Bold.ttf")
+            new_surface.blit(font.render('You Win!', True, (0,0,0))), (WINDOW_WIDTH /2, WINDOW_HEIGHT /2)
+            pygame.display.update()
+        
            
 
-    
 
-pygame.quit()
+
+if quit:
+    pygame.quit()
 
