@@ -18,7 +18,7 @@ background = pygame.image.load("TeamProject\images\lv1background.png")
 background = pygame.transform.scale(background, (WINDOW_WIDTH, WINDOW_HEIGHT))
 enemy = []
 start = True
-border = pygame.image.load("TeamProject\images\Lv1_border.png")
+border = pygame.Rect(325, 169, 880, 723)
 ######
 
 ### Functions ###
@@ -34,11 +34,7 @@ def collisions(dt):
     #     enemy.kill()
 
 ### Chiron ###
-#enemy = Enemy((all_sprites, enemy_sprites))
-
-### Border ###
-if ( pygame.sprite.collide_mask(player, border) ):
-    print ("collide")
+enemy = Enemy((all_sprites, enemy_sprites))
 
 ### Running Loop ###
 while running:
@@ -67,8 +63,10 @@ while running:
         pygame.display.update()
         ###
 
-        
-        ### player.rect.clamp_ip(border) good for rect
+        # Border
+        player.rect.clamp_ip(border)
+        enemy.rect.clamp_ip(border)
+        ###
 
 pygame.quit()
 
