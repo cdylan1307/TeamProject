@@ -23,6 +23,7 @@ class Enemy(pygame.sprite.Sprite):
         self.speed       = 0.3
         self.frames      = chiron_walk_frames
         self.frame_index = 0
+        self.health      = 3
         
 
     def update(self, dt):

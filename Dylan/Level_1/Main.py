@@ -19,6 +19,7 @@ background = pygame.transform.scale(background, (WINDOW_WIDTH, WINDOW_HEIGHT))
 enemy = []
 start = True
 border = pygame.Rect(325, 169, 880, 723)
+win = False
 ######
 
 ### Functions ###
@@ -27,46 +28,64 @@ def collisions(dt):
     if collision_sprites:
         player.flash()
 
+    collided_sprites_enemy = pygame.sprite.spritecollide(player, enemy_sprites, False, pygame.sprite.collide_mask)
+    if collided_sprites_enemy  and recent_keys[pygame.K_SPACE]:
+        enemy.health -= 1
 
-    # collided_sprites_enemy = pygame.sprite.spritecollide(enemy, player, True, pygame.sprite.collide_mask)
-    # if collided_sprites_enemy and enemy.health == 0:
-    #     # Enemy_Animation(enemy_death_frames, enemy.rect, all_sprites)
-    #     enemy.kill()
+    if collided_sprites_enemy and enemy.health == 0:
+        win = True
+        enemy.kill()
 
 ### Chiron ###
 enemy = Enemy((all_sprites, enemy_sprites))
 
 ### Running Loop ###
 while running:
-    recent_keys = pygame.key.get_just_pressed()
-    if recent_keys[pygame.K_SPACE ] :
-        start = True
-    if start:
-        # Delta-Time
-        dt = clock.tick() / 1000
-        ###
+    # Event Loop
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
+    while not win:
         # Event Loop
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                
+        recent_keys = pygame.key.get_just_pressed()
+        if recent_keys[pygame.K_KP_ENTER ] :
+            start = True
+
+        if start:
+            # Event Loop
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+            # Delta-Time
+            dt = clock.tick() / 1000
+            ###
+
+            
             recent_keys = pygame. key.get_just_pressed()
-        ###
+            ###
 
-        # Update
-        all_sprites.update(dt)
-        collisions(dt)
+            # Update
+            all_sprites.update(dt)
+            collisions(dt)
 
-        # Draw
-        display_surface.blit(background)
-        all_sprites.draw(display_surface)
-        pygame.display.update()
-        ###
+            # Draw
+            display_surface.blit(background)
+            all_sprites.draw(display_surface)
+            pygame.display.update()
+            ###
 
-        # Border
-        player.rect.clamp_ip(border)
-        enemy.rect.clamp_ip(border)
-        ###
+            # Border
+            player.rect.clamp_ip(border)
+            enemy.rect.clamp_ip(border)
+            ###
+
+    ### win cutscene
+    print ("win" * 10)
 
 pygame.quit()
 

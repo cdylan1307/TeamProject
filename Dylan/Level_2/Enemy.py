@@ -20,6 +20,7 @@ class Enemy(pygame.sprite.Sprite):
         self.frames      = chiron_walk_frames
         self.frame_index = 0
         
+        
 
     def update(self, dt):
 
