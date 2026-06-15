@@ -19,7 +19,6 @@ background = pygame.transform.scale(background, (WINDOW_WIDTH, WINDOW_HEIGHT))
 enemy = []
 start = True
 border = pygame.image.load("TeamProject\images\Lv1_border.png")
-border = pygame.mask.from_surface(border)
 ######
 
 ### Functions ###
@@ -38,6 +37,8 @@ def collisions(dt):
 #enemy = Enemy((all_sprites, enemy_sprites))
 
 ### Border ###
+if ( pygame.sprite.collide_mask(player, border) ):
+    print ("collide")
 
 ### Running Loop ###
 while running:
@@ -62,7 +63,6 @@ while running:
 
         # Draw
         display_surface.blit(background)
-        background.blit(border)
         all_sprites.draw(display_surface)
         pygame.display.update()
         ###

@@ -1,7 +1,7 @@
 import pygame
 
 ### Import Modules Created By Us
-from Player import * ### Contains Player class And All Player Animations
+from Player import * ### Contains Player class
 from Enemy import *
 from Constants import *
 ######
