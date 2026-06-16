@@ -10,7 +10,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__(groups)
 
         self.group      = groups
-        self.image      = pygame.image.load(join("TeamProject","images", "player.png"))
+        self.image      = pygame.image.load(join("images", "player.png"))
         self.rect       = self.image.get_frect(center = (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2))
         self.mask       = pygame.mask.from_surface(self.image)
         self.direction  = pygame.Vector2()

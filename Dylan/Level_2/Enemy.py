@@ -12,7 +12,7 @@ class Enemy(pygame.sprite.Sprite):
         super().__init__(groups)
 
         self.group       = groups
-        self.image       = pygame.image.load(join("TeamProject","animations","Chiron","Walking","Chiron_Walk_0.png")).convert_alpha()
+        self.image       = pygame.image.load(join("animations","Chiron","Walking","Chiron_Walk_0.png")).convert_alpha()
         self.rect        = self.image.get_frect(center = (randint(WINDOW_WIDTH , WINDOW_WIDTH + 100), (randint(0, WINDOW_HEIGHT))))
         self.mask        = pygame.mask.from_surface(self.image)
         self.direction   = pygame.Vector2()

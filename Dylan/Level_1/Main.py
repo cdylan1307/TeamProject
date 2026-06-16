@@ -14,7 +14,7 @@ pygame.init()
 running = True
 clock = pygame.time.Clock()
 display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-background = pygame.image.load("TeamProject\images\lv1background.png")
+background = pygame.image.load("images\lv1background.png")
 background = pygame.transform.scale(background, (WINDOW_WIDTH, WINDOW_HEIGHT))
 enemy = []
 start = False
@@ -47,50 +47,49 @@ while running:
     # Event Loop
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            quit = True
             running = False
 
-    recent_keys = pygame.key.get_just_pressed()
-    if recent_keys[pygame.K_1]:
-        start = True
-            ###
+    if not win:
+        recent_keys = pygame.key.get_just_pressed()
+        if recent_keys[pygame.K_1]:
+            start = True
+                ###
 
-    if win != True:
+        if win != True:
 
-        if start:
-            # Delta-Time
-            dt = clock.tick() / 1000
-            ###
+            if start:
+                # Delta-Time
+                dt = clock.tick() / 1000
+                ###
 
-            
-            
+                
+                
 
-            # Update
-            all_sprites.update(dt)
-            collisions(dt)
+                # Update
+                all_sprites.update(dt)
+                collisions(dt)
 
-            # Draw
-            display_surface.blit(background)
-            all_sprites.draw(display_surface)
-            pygame.display.update()
-            ###
+                # Draw
+                display_surface.blit(background)
+                all_sprites.draw(display_surface)
+                pygame.display.update()
+                ###
 
-            # Border
-            player.rect.clamp_ip(border)
-            enemy.rect.clamp_ip(border)
-            ###
+                # Border
+                player.rect.clamp_ip(border)
+                enemy.rect.clamp_ip(border)
+                ###
 
     ### win cutscene
     while win:
-            new_surface = pygame.image.load("TeamProject\images\lv1background.png")
-            font = pygame.font.Font("TeamProject/text/Oxanium-Bold.ttf")
-            new_surface.blit(font.render('You Win!', True, (0,0,0))), (WINDOW_WIDTH /2, WINDOW_HEIGHT /2)
+
+            font = pygame.font.Font("text/Oxanium-Bold.ttf")
+            display_surface.blit(font.render('You Win!', True, (0,0,0))), (WINDOW_WIDTH /2, WINDOW_HEIGHT /2)
             pygame.display.update()
         
            
 
 
 
-if quit:
     pygame.quit()
 
