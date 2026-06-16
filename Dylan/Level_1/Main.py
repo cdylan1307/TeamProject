@@ -20,7 +20,6 @@ enemy = []
 start = False
 border = pygame.Rect(325, 169, 880, 723)
 win = False
-quit = False
 ######
 
 ### Functions ###
@@ -39,7 +38,7 @@ def collisions(dt):
         enemy.kill()
 
 ### Chiron ###
-enemy = Enemy((all_sprites, enemy_sprites))
+enemy = Chiron((all_sprites, enemy_sprites), 0)
 
 
 ### Running Loop ###
@@ -48,6 +47,7 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+            pygame.QUIT
 
     if not win:
         recent_keys = pygame.key.get_just_pressed()
@@ -55,34 +55,34 @@ while running:
             start = True
                 ###
 
-        if win != True:
+        if start:
+            enemy.speed = 0.3
+            # Delta-Time
+            dt = clock.tick() / 1000
+            ###
 
-            if start:
-                # Delta-Time
-                dt = clock.tick() / 1000
-                ###
+            
+            
 
-                
-                
+            # Update
+            all_sprites.update(dt)
+            collisions(dt)
 
-                # Update
-                all_sprites.update(dt)
-                collisions(dt)
+            # Draw
+            display_surface.blit(background)
+            all_sprites.draw(display_surface)
+            pygame.display.update()
+            ###
 
-                # Draw
-                display_surface.blit(background)
-                all_sprites.draw(display_surface)
-                pygame.display.update()
-                ###
-
-                # Border
-                player.rect.clamp_ip(border)
-                enemy.rect.clamp_ip(border)
-                ###
+            # Border
+            player.rect.clamp_ip(border)
+            enemy.rect.clamp_ip(border)
+            ###
 
     ### win cutscene
     while win:
 
+            player.kill()
             font = pygame.font.Font("text/Oxanium-Bold.ttf")
             display_surface.blit(font.render('You Win!', True, (0,0,0))), (WINDOW_WIDTH /2, WINDOW_HEIGHT /2)
             pygame.display.update()
@@ -91,5 +91,5 @@ while running:
 
 
 
-    pygame.quit()
+pygame.quit()
 

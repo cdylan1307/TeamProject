@@ -10,8 +10,8 @@ scale = 0.75
 
 ###   Classes   ###
 ### Enemy Class ###
-class Enemy(pygame.sprite.Sprite):
-    def __init__(self, groups):
+class Chiron(pygame.sprite.Sprite):
+    def __init__(self, groups, speed):
         super().__init__(groups)
 
         self.group       = groups
@@ -20,7 +20,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect        = self.image.get_frect(center = ((WINDOW_WIDTH * 0.8), (WINDOW_HEIGHT / 2)))
         self.mask        = pygame.mask.from_surface(self.image)
         self.direction   = pygame.Vector2()
-        self.speed       = 0.3
+        self.speed       = speed
         self.frames      = chiron_walk_frames
         self.frame_index = 0
         self.health      = 3
