@@ -28,7 +28,7 @@ class Player(pygame.sprite.Sprite):
         self.direction = self.direction.normalize() if self.direction else self.direction
         self.rect.center += self.direction * self.speed * dt
     
-    def attack(self, dt):
+    def attack(self):
         recent_keys = pygame.key.get_just_pressed()
         if recent_keys[pygame.K_SPACE]:
             Player_Animation(player_attack_frames)

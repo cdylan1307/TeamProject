@@ -4,6 +4,7 @@ import pygame
 from Player import * ### Contains Player class And All Player Animations
 from Chiron import *
 from Constants import *
+from Patroclus import *
 ######
 
 ### Initialisation ###
@@ -57,6 +58,7 @@ while running:
 
         if start:
             enemy.speed = 0.3
+            patroclus.speed = 1
             # Delta-Time
             dt = clock.tick() / 1000
             ###
