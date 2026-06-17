@@ -48,7 +48,7 @@ while running:
                 enemy.remove(enemies)
     ###
 
-    while (len(enemy) < 2):
+    while (len(enemy) < 3):
         enemy.append(Enemy((enemy_sprites, all_sprites)))
     ###
     # Update

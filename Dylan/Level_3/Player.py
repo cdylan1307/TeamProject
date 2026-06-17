@@ -15,7 +15,7 @@ class Player(pygame.sprite.Sprite):
         self.mask       = pygame.mask.from_surface(self.image)
         self.direction  = pygame.Vector2()
         self.speed      = 300
-        self.health     = 3
+        self.health     = 3000
         self.damage     = INITIAL_DAMAGE
     
     def update(self, dt):
@@ -40,8 +40,11 @@ class Player(pygame.sprite.Sprite):
             Player_Animation(player_death_frames, self.rect.midtop, self.group)
             self.kill()
         
-    def flash(self):
-        pass #self.kill()
+    def flash(self, dt):
+        if dt >= 0.002:
+            self.health -= 1
+        if self.health <= 0:
+            self.kill()
 
 ### Animation Class ###
 class Player_Animation(pygame.sprite.Sprite):
