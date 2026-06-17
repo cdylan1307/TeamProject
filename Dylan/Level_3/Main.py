@@ -2,7 +2,7 @@ import pygame
 
 ### Import Modules Created By Us
 from Player import * ### Contains Player class And All Player Animations
-from Chiron import *
+from Hector import *
 from Constants import *
 ######
 
@@ -38,7 +38,7 @@ def collisions(dt):
         enemy.kill()
 
 ### Chiron ###
-enemy = Chiron((all_sprites, enemy_sprites), 0)
+enemy = Hector((all_sprites, enemy_sprites), 0)
 
 
 ### Running Loop ###

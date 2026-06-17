@@ -10,7 +10,7 @@ scale = 0.75
 
 ###   Classes   ###
 ### Enemy Class ###
-class Chiron(pygame.sprite.Sprite):
+class Hector(pygame.sprite.Sprite):
     def __init__(self, groups, speed):
         super().__init__(groups)
 
