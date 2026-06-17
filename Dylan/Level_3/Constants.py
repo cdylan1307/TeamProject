@@ -94,11 +94,10 @@ for i in range(21):
     ###
 
     # Player Moving Animation #
-chiron_walk_frames = []
-for i in range(6):
-    chiron_walk_frames.append(pygame.image.load(join("animations","Chiron","Walking",f"Chiron_Walk_{i}.png")))
-
-    # Player Attack Animations
+# hector_walk_frames = []
+# for i in range(6):
+#     hector_walk_frames.append(pygame.image.load(join("animations","Chiron","Walking",f"Chiron_Walk_{i}.png")))
+#     # Player Attack Animations
 enemy_attack_frames = []
 for i in range(21):
 #    player_death_frames.append(pygame.image.load(join(f"explosion\{i}.png")).convert_alpha())
