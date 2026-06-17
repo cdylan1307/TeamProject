@@ -2,7 +2,7 @@ import pygame
 import os
 
 class Bard:
-    FRAME_DURATION = 100  # ms per frame
+    FRAME_DURATION = 100
 
     def __init__(self, window_height: int, scale: float = 1.0):
         self.frames = self._load_frames(scale)
@@ -33,7 +33,7 @@ class Bard:
         surface.blit(self.frames[self.current_frame], (self.x, self.y))
 
 
-# --- Main (can be moved to a separate main.py) ---
+#Main (can be moved to a separate main.py) 
 if __name__ == "__main__":
     pygame.init()
 
