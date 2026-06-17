@@ -14,11 +14,11 @@ pygame.init()
 running = True
 clock = pygame.time.Clock()
 display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-background = pygame.image.load("images\lv1background.png")
+background = pygame.image.load("images\lv3background.png")
 background = pygame.transform.scale(background, (WINDOW_WIDTH, WINDOW_HEIGHT))
 enemy = []
 start = False
-border = pygame.Rect(325, 169, 880, 723)
+border = pygame.Rect(0, 200, WINDOW_WIDTH, WINDOW_HEIGHT - 200)
 win = False
 ######
 
@@ -26,7 +26,7 @@ win = False
 def collisions(dt):
     collision_sprites = pygame.sprite.spritecollide(player, enemy_sprites, False, pygame.sprite.collide_mask)
     if collision_sprites:
-        player.flash()
+        player.flash(dt)
 
     collided_sprites_enemy = pygame.sprite.spritecollide(player, enemy_sprites, False, pygame.sprite.collide_mask)
     if collided_sprites_enemy  and recent_keys[pygame.K_SPACE]:

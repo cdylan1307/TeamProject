@@ -23,7 +23,7 @@ class Hector(pygame.sprite.Sprite):
         self.speed       = speed
         self.frames      = chiron_walk_frames
         self.frame_index = 0
-        self.health      = 3
+        self.health      = 5
         
 
     def update(self, dt):
