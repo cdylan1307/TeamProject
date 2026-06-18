@@ -1,0 +1,214 @@
+import pygame
+import sys
+import os
+
+pygame.init()
+
+print("RUNNING FROM:", os.getcwd())
+
+# -----------------
+# WINDOW
+# -----------------
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("RPG")
+
+clock = pygame.time.Clock()
+BACKGROUND = (139, 69, 19)
+
+
+# -----------------
+# LOAD
+# -----------------
+def load_frame(path):
+    if not os.path.exists(path):
+        print("❌ MISSING FILE:", path)
+        input("Press Enter...")
+        sys.exit()
+    return pygame.image.load(path).convert_alpha()
+
+
+# -----------------
+# PLAYER
+# -----------------
+class Player:
+    def __init__(self):
+        self.x = 400
+        self.y = 300
+        self.speed = 3
+
+        self.direction = "front"
+        self.state = "idle"
+
+        self.frame_index = 0
+        self.animation_speed = 0.2
+
+        self.facing_left = False
+        self.attacking = False
+
+        # ✅ FIXED PATH
+        base = "animations/Player"
+
+        self.animations = {
+
+            "idle_front": [
+                load_frame(f"{base}/FrontIdle Frames/pixil-frame-0.png"),
+                load_frame(f"{base}/FrontIdle Frames/pixil-frame-1.png"),
+                load_frame(f"{base}/FrontIdle Frames/pixil-frame-2.png"),
+                load_frame(f"{base}/FrontIdle Frames/pixil-frame-3.png"),
+                load_frame(f"{base}/FrontIdle Frames/pixil-frame-4.png"),
+            ],
+
+            "idle_back": [
+                load_frame(f"{base}/BackIdle Frames/pixil-frame-0.png"),
+                load_frame(f"{base}/BackIdle Frames/pixil-frame-1.png"),
+                load_frame(f"{base}/BackIdle Frames/pixil-frame-2.png"),
+                load_frame(f"{base}/BackIdle Frames/pixil-frame-3.png"),
+                load_frame(f"{base}/BackIdle Frames/pixil-frame-4.png"),
+                load_frame(f"{base}/BackIdle Frames/pixil-frame-5.png"),
+                load_frame(f"{base}/BackIdle Frames/pixil-frame-6.png"),
+                load_frame(f"{base}/BackIdle Frames/pixil-frame-7.png"),
+            ],
+
+            "idle_side": [
+                load_frame(f"{base}/SideIdle Frames/pixil-frame-1.png"),
+                load_frame(f"{base}/SideIdle Frames/pixil-frame-2.png"),
+                load_frame(f"{base}/SideIdle Frames/pixil-frame-3.png"),
+                load_frame(f"{base}/SideIdle Frames/pixil-frame-4.png"),
+                load_frame(f"{base}/SideIdle Frames/pixil-frame-5.png"),
+                load_frame(f"{base}/SideIdle Frames/pixil-frame-6.png"),
+            ],
+
+            "walk_front": [
+                load_frame(f"{base}/FrontWalk Frames/pixil-frame-0.png"),
+                load_frame(f"{base}/FrontWalk Frames/pixil-frame-1.png"),
+                load_frame(f"{base}/FrontWalk Frames/pixil-frame-2.png"),
+                load_frame(f"{base}/FrontWalk Frames/pixil-frame-3.png"),
+                load_frame(f"{base}/FrontWalk Frames/pixil-frame-4.png"),
+                load_frame(f"{base}/FrontWalk Frames/pixil-frame-5.png"),
+                load_frame(f"{base}/FrontWalk Frames/pixil-frame-6.png"),
+                load_frame(f"{base}/FrontWalk Frames/pixil-frame-7.png"),
+                load_frame(f"{base}/FrontWalk Frames/pixil-frame-8.png"),
+                load_frame(f"{base}/FrontWalk Frames/pixil-frame-9.png"),
+            ],
+
+            "walk_back": [
+                load_frame(f"{base}/BackWalk Frames/pixil-frame-0.png"),
+                load_frame(f"{base}/BackWalk Frames/pixil-frame-1.png"),
+                load_frame(f"{base}/BackWalk Frames/pixil-frame-2.png"),
+                load_frame(f"{base}/BackWalk Frames/pixil-frame-3.png"),
+                load_frame(f"{base}/BackWalk Frames/pixil-frame-4.png"),
+                load_frame(f"{base}/BackWalk Frames/pixil-frame-5.png"),
+                load_frame(f"{base}/BackWalk Frames/pixil-frame-6.png"),
+                load_frame(f"{base}/BackWalk Frames/pixil-frame-7.png"),
+            ],
+
+            "walk_side": [
+                load_frame(f"{base}/SideWalk Frames/pixil-frame-0.png"),
+                load_frame(f"{base}/SideWalk Frames/pixil-frame-1.png"),
+                load_frame(f"{base}/SideWalk Frames/pixil-frame-2.png"),
+                load_frame(f"{base}/SideWalk Frames/pixil-frame-3.png"),
+                load_frame(f"{base}/SideWalk Frames/pixil-frame-4.png"),
+                load_frame(f"{base}/SideWalk Frames/pixil-frame-5.png"),
+                load_frame(f"{base}/SideWalk Frames/pixil-frame-6.png"),
+                load_frame(f"{base}/SideWalk Frames/pixil-frame-7.png"),
+                load_frame(f"{base}/SideWalk Frames/pixil-frame-8.png"),
+                load_frame(f"{base}/SideWalk Frames/pixil-frame-9.png"),
+            ],
+
+            "attack_side": [
+                load_frame(f"{base}/SideAttack Frames/pixil-frame-0.png"),
+                load_frame(f"{base}/SideAttack Frames/pixil-frame-1.png"),
+                load_frame(f"{base}/SideAttack Frames/pixil-frame-2.png"),
+                load_frame(f"{base}/SideAttack Frames/pixil-frame-3.png"),
+                load_frame(f"{base}/SideAttack Frames/pixil-frame-4.png"),
+                load_frame(f"{base}/SideAttack Frames/pixil-frame-5.png"),
+                load_frame(f"{base}/SideAttack Frames/pixil-frame-6.png"),
+            ],
+        }
+
+        self.current_frame = self.animations["idle_front"][0]
+
+    def update(self, keys):
+        moving = False
+
+        if keys[pygame.K_w]:
+            self.y -= self.speed
+            self.direction = "back"
+            moving = True
+
+        if keys[pygame.K_s]:
+            self.y += self.speed
+            self.direction = "front"
+            moving = True
+
+        if keys[pygame.K_a]:
+            self.x -= self.speed
+            self.direction = "side"
+            self.facing_left = True
+            moving = True
+
+        if keys[pygame.K_d]:
+            self.x += self.speed
+            self.direction = "side"
+            self.facing_left = False
+            moving = True
+
+        if self.attacking:
+            self.state = "attack"
+        elif moving:
+            self.state = "walk"
+        else:
+            self.state = "idle"
+
+        self.animate()
+
+    def animate(self):
+        if self.state == "attack":
+            key = "attack_side"
+        else:
+            key = f"{self.state}_{self.direction}"
+
+        frames = self.animations[key]
+
+        self.frame_index += self.animation_speed
+
+        if self.frame_index >= len(frames):
+            if self.attacking:
+                self.attacking = False
+            self.frame_index = 0
+
+        self.current_frame = frames[int(self.frame_index)]
+
+    def draw(self, screen):
+        frame = self.current_frame
+
+        if self.direction == "side" and self.facing_left:
+            frame = pygame.transform.flip(frame, True, False)
+
+        screen.blit(frame, (self.x, self.y))
+
+
+player = Player()
+
+while True:
+    screen.fill(BACKGROUND)
+
+    keys = pygame.key.get_pressed()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            
+            pygame.quit()
+            sys.exit()
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_f:
+                player.attacking = True
+                player.frame_index = 0
+
+    player.update(keys)
+    player.draw(screen)
+
+    pygame.display.flip()
+    clock.tick(60)
