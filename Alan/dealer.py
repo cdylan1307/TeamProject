@@ -2,7 +2,7 @@ import pygame
 import os
 
 class Dealer:
-    def __init__(self, x: int, y: int, scale: float = 1.0):
+    def __init__(self, x: int, y: int, scale: float = 0.5):
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
         dealer_path = os.path.join(base_dir, "..", "images", "Dealer.png")
@@ -15,12 +15,11 @@ class Dealer:
         self.interaction_distance = 100
         self.selected_item = 0
         
-        #CUSTOMIZABLE ITEMS
         self.items = [
-            {"name": "Health Potion", "color": (255, 0, 0), "cost": 15, "image": None},
-            {"name": "Mana Potion", "color": (0, 0, 255), "cost": 15, "image": None},
-            {"name": "Sword Upgrade", "color": (200, 200, 0), "cost": 15, "image": None},
-            {"name": "Shield Boost", "color": (0, 255, 0), "cost": 15, "image": None}
+            {"name": "Battle Axe", "color": (255, 0, 0), "cost": 15, "image": "images/axeattack/pixil-frame-0 (4).png"},
+            {"name": "Sword", "color": (0, 0, 255), "cost": 15, "image": "images/swordattack/pixil-frame-0.png"},
+            {"name": "Spear", "color": (200, 200, 0), "cost": 15, "image": "images/spearattack/pixil-frame-0.png"},
+            {"name": "Colosseum Ticket", "color": (0, 255, 0), "cost": 15, "image": "images/colosseumticket.png"}
         ]
         
         self._load_item_images()
@@ -28,7 +27,6 @@ class Dealer:
         self.font_small = pygame.font.Font(None, 24)
         
     def _load_item_images(self):
-        """Load custom images for items if specified"""
         base_dir = os.path.dirname(os.path.abspath(__file__))
         for item in self.items:
             if item["image"]:
@@ -42,7 +40,7 @@ class Dealer:
                 item["loaded_image"] = None
     
     def is_player_close(self, player_x: int, player_y: int) -> bool:
-        #Check if within interaction distance
+        #Checks if the player is within interaction distance#
         dx = player_x - self.rect.centerx
         dy = player_y - self.rect.centery
         return (dx * dx + dy * dy) ** 0.5 <= self.interaction_distance
@@ -64,7 +62,6 @@ class Dealer:
         return -1
     
     def buy_item(self, item_index: int, player_health: int) -> tuple[int, str]:
-        """Process purchase and return (new_health, item_name)"""
         item = self.items[item_index]
         return player_health - item["cost"], item["name"]
     
@@ -109,14 +106,12 @@ class Dealer:
             if i == self.selected_item:
                 pygame.draw.rect(surface, (255, 255, 0), (ix - 10, iy - 10, 120, 120), 4)
             
-            # Draw item
             if item["loaded_image"]:
                 surface.blit(item["loaded_image"], (ix, iy))
             else:
                 pygame.draw.rect(surface, item["color"], (ix, iy, 100, 100))
                 pygame.draw.rect(surface, (255, 255, 255), (ix, iy, 100, 100), 2)
             
-            # Draw name and cost
             name = self.font_small.render(item["name"], True, (255, 255, 255))
             surface.blit(name, (ix + 50 - name.get_width() // 2, iy + 110))
             cost = self.font_small.render(f"Cost: {item['cost']} HP", True, (255, 200, 100))
