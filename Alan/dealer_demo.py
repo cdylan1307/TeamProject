@@ -13,30 +13,6 @@ if __name__ == "__main__":
     # Create dealer at center of screen
     dealer = Dealer(x=WINDOW_WIDTH // 2 - 50, y=WINDOW_HEIGHT // 2 - 50, scale=1.5)
     
-    # CUSTOMIZE ITEMS WITH IMAGES:
-    # To replace colored rectangles with images, set the "image" field to the path
-    # relative to the project root.
-    
-    # Example: Uncomment these lines to use actual images from the images folder
-    # dealer.items[0]["name"] = "Legendary Sword"
-    # dealer.items[0]["image"] = "images/legendary sword.png"
-    # dealer.items[0]["cost"] = 20
-    # 
-    # dealer.items[1]["name"] = "Arrow Pack"
-    # dealer.items[1]["image"] = "images/arrow.png"
-    # dealer.items[1]["cost"] = 10
-    # 
-    dealer.items[2]["name"] = "Colosseum Ticket"
-    dealer.items[2]["image"] = "images/colosseumticket.png"
-    dealer.items[2]["cost"] = 25
-    # 
-    # dealer.items[3]["name"] = "Rock"
-    # dealer.items[3]["image"] = "images/rock.png"
-    # dealer.items[3]["cost"] = 5
-    # 
-    # # After setting image paths, reload the images:
-    # dealer._load_item_images()
-    
     # Simple player setup
     player_x, player_y = 100, 100
     player_health = 100
