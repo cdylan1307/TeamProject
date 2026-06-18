@@ -15,7 +15,6 @@ class Dealer:
         self.interaction_distance = 100
         self.selected_item = 0
         
-        #CUSTOMIZABLE ITEMS
         self.items = [
             {"name": "Battle Axe", "color": (255, 0, 0), "cost": 15, "image": "images/axeattack/pixil-frame-0 (4).png"},
             {"name": "Sword", "color": (0, 0, 255), "cost": 15, "image": "images/swordattack/pixil-frame-0.png"},
