@@ -26,9 +26,9 @@ if __name__ == "__main__":
     # dealer.items[1]["image"] = "images/arrow.png"
     # dealer.items[1]["cost"] = 10
     # 
-    dealer.items[2]["name"] = "Colosseum Ticket"
-    dealer.items[2]["image"] = "images/colosseumticket.png"
-    dealer.items[2]["cost"] = 25
+    #dealer.items[2]["name"] = "Colosseum Ticket"
+    #dealer.items[2]["image"] = "images/colosseumticket.png"
+    #dealer.items[2]["cost"] = 25
     # 
     # dealer.items[3]["name"] = "Rock"
     # dealer.items[3]["image"] = "images/rock.png"
