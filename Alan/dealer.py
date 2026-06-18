@@ -2,7 +2,7 @@ import pygame
 import os
 
 class Dealer:
-    def __init__(self, x: int, y: int, scale: float = 1.0):
+    def __init__(self, x: int, y: int, scale: float = 0.5):
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
         dealer_path = os.path.join(base_dir, "..", "images", "Dealer.png")
