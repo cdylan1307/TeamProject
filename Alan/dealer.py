@@ -2,7 +2,7 @@ import pygame
 import os
 
 class Dealer:
-    def __init__(self, x: int, y: int, scale: float = 1.0):
+    def __init__(self, x: int, y: int, scale: float = 0.5):
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
         dealer_path = os.path.join(base_dir, "..", "images", "Dealer.png")
@@ -17,10 +17,10 @@ class Dealer:
         
         #CUSTOMIZABLE ITEMS
         self.items = [
-            {"name": "Health Potion", "color": (255, 0, 0), "cost": 15, "image": None},
-            {"name": "Mana Potion", "color": (0, 0, 255), "cost": 15, "image": None},
-            {"name": "Sword Upgrade", "color": (200, 200, 0), "cost": 15, "image": None},
-            {"name": "Shield Boost", "color": (0, 255, 0), "cost": 15, "image": None}
+            {"name": "Battle Axe", "color": (255, 0, 0), "cost": 15, "image": "images/axeattack/pixil-frame-0 (4).png"},
+            {"name": "Sword", "color": (0, 0, 255), "cost": 15, "image": "images/swordattack/pixil-frame-0.png"},
+            {"name": "Spear", "color": (200, 200, 0), "cost": 15, "image": "images/spearattack/pixil-frame-0.png"},
+            {"name": "Colosseum Ticket", "color": (0, 255, 0), "cost": 15, "image": "images/colosseumticket.png"}
         ]
         
         self._load_item_images()
