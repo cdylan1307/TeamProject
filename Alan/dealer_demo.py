@@ -38,11 +38,17 @@ if __name__ == "__main__":
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                pygame.quit()
+                exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_e:
                     e_pressed = True
                 elif event.key == pygame.K_RETURN:
                     enter_pressed = True
+                elif event.key == pygame.K_ESCAPE:
+                    running = False
+                    pygame.quit()
+                    exit()
         
         # Player movement (only when shop is closed)
         if not dealer.shop_open:
@@ -77,3 +83,4 @@ if __name__ == "__main__":
         clock.tick(60)
     
     pygame.quit()
+    exit()
