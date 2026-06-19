@@ -187,8 +187,30 @@
         </div>
     </section>
 
-    <!-- Other Characters Preview -->
+    <!-- Bard Animations -->
     <section class="gallery-section">
+        <div class="container">
+            <h2 class="section-title">🎵 The Bard - Master of Melodies</h2>
+            <p class="section-description">The mysterious musician who brings life to the game</p>
+            
+            <!-- Bard Animation -->
+            <div class="animation-player">
+                <h3 class="subsection-title">Bard Animation</h3>
+                <div class="player-container">
+                    <canvas id="bardIdle" class="animation-canvas"></canvas>
+                    <div class="player-controls">
+                        <button class="play-btn" onclick="toggleAnimation('bardIdle')">▶ Play</button>
+                        <input type="range" class="speed-slider" min="50" max="500" value="150" 
+                               onchange="updateSpeed('bardIdle', this.value)">
+                        <span class="speed-label">Speed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Other Characters Preview -->
+    <section class="gallery-section alternate">
         <div class="container">
             <h2 class="section-title">Other Characters & Enemies</h2>
             <p class="section-description">Supporting cast and foes</p>
@@ -223,7 +245,7 @@
     </section>
 
     <!-- Environments -->
-    <section class="gallery-section alternate">
+    <section class="gallery-section">
         <div class="container">
             <h2 class="section-title">Game Environments</h2>
             <div class="assets-grid">
@@ -320,6 +342,10 @@
             patroclusSideWalk: {
                 frames: [], currentFrame: 0, isPlaying: false, speed: 100, interval: null,
                 path: '../animations/Player/PatrocusSideWalk Frames/', count: 9
+            },
+            bardIdle: {
+                frames: [], currentFrame: 0, isPlaying: false, speed: 150, interval: null,
+                path: '../images/Bard Idle/', count: 3
             }
         };
 
