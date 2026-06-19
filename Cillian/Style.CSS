@@ -726,6 +726,7 @@ html {
     border-radius: 5px;
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
 }
 
 .speed-slider::-webkit-slider-thumb {
@@ -1024,6 +1025,7 @@ html {
     outline: none;
     margin: 20px 0;
     -webkit-appearance: none;
+    appearance: none;
 }
 
 .donation-slider::-webkit-slider-thumb {
