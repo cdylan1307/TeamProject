@@ -1,5 +1,6 @@
 import pygame
 import os
+import sys
 from dealer import Dealer
 
 # Example usage and demo for the Dealer class
@@ -37,18 +38,16 @@ if __name__ == "__main__":
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
                 pygame.quit()
-                exit()
+                sys.exit(0)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_e:
                     e_pressed = True
                 elif event.key == pygame.K_RETURN:
                     enter_pressed = True
                 elif event.key == pygame.K_ESCAPE:
-                    running = False
                     pygame.quit()
-                    exit()
+                    sys.exit(0)
         
         # Player movement (only when shop is closed)
         if not dealer.shop_open:
@@ -83,4 +82,4 @@ if __name__ == "__main__":
         clock.tick(60)
     
     pygame.quit()
-    exit()
+    sys.exit(0)
