@@ -19,6 +19,59 @@ def draw_heart(surface, x, y, size=24):
     points = [(x - size // 2, y - size // 6), (x + size // 2, y - size // 6), (x, y + size // 2)]
     pygame.draw.polygon(surface, color, points)
 
+def draw_health_bar(surface, x, y, current_health, max_health, width=50, height=6):
+    """Draw a health bar above an enemy"""
+    BLACK = (0, 0, 0)
+    RED = (180, 50, 50)
+    GREEN = (40, 180, 80)
+    # Background (black border)
+    pygame.draw.rect(surface, BLACK, (x - width // 2 - 1, y - 1, width + 2, height + 2))
+    # Red background (lost health)
+    pygame.draw.rect(surface, RED, (x - width // 2, y, width, height))
+    # Green foreground (current health)
+    health_width = int((current_health / max_health) * width)
+    if health_width > 0:
+        pygame.draw.rect(surface, GREEN, (x - width // 2, y, health_width, height))
+
+class BloodSpray:
+    """Blood spray particle effect when enemy is hit"""
+    def __init__(self, x, y):
+        self.particles = []
+        # Create 8-15 blood particles
+        num_particles = random.randint(8, 15)
+        for _ in range(num_particles):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(50, 150)
+            self.particles.append({
+                'x': x,
+                'y': y,
+                'vx': math.cos(angle) * speed,
+                'vy': math.sin(angle) * speed,
+                'life': random.uniform(0.3, 0.6),  # Lifetime in seconds
+                'size': random.randint(3, 7)
+            })
+    
+    def update(self, dt):
+        """Update particle positions and lifetimes"""
+        for particle in self.particles[:]:
+            particle['x'] += particle['vx'] * dt
+            particle['y'] += particle['vy'] * dt
+            particle['vy'] += 200 * dt  # Gravity
+            particle['life'] -= dt
+            if particle['life'] <= 0:
+                self.particles.remove(particle)
+        return len(self.particles) > 0  # Return True if still alive
+    
+    def draw(self, surface):
+        """Draw blood particles"""
+        for particle in self.particles:
+            alpha = int(255 * (particle['life'] / 0.6))  # Fade out
+            color = (180, 0, 0, min(255, alpha))
+            # Create a temporary surface with per-pixel alpha
+            particle_surf = pygame.Surface((particle['size'], particle['size']), pygame.SRCALPHA)
+            pygame.draw.circle(particle_surf, color, (particle['size'] // 2, particle['size'] // 2), particle['size'] // 2)
+            surface.blit(particle_surf, (int(particle['x']), int(particle['y'])))
+
 def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_name="", game_sounds_enabled=True):
     # Pause timer during cutscene
     if timer and timer.is_running:
@@ -26,7 +79,7 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
     
     # Play Level 2 cutscene before starting the level
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Level 2: The Archer Showdown")
+    pygame.display.set_caption("Achilles and Patroclus - Level 2")
     
     cutscene_result = cutscene.play_cutscene(screen, "level2")
     # Continue regardless of whether player skips or watches
@@ -37,7 +90,7 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
     
     pygame.init()
     pygame.font.init()
-    pygame.display.set_caption("Level 2: The Archer Showdown")
+    pygame.display.set_caption("Achilles and Patroclus - Level 2")
     clock = pygame.time.Clock()
 
     FONT_SCORE = pygame.font.SysFont("Arial", 30, bold=True)
@@ -55,8 +108,10 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
     PLAYER_BODY_RADIUS = 25   
 
     # EASIER MODIFICATION CRITERIA
-    WIN_TARGET = 2 
-    START_HEARTS = 5
+    WIN_TARGET = 1  # Only need to defeat 1 archer
+    START_HEARTS = 3  # Increased back to 3
+    ARCHER_HEALTH = 5  # Archer health (increased from 3 to 5 hits)
+    SWORD_ATTACK_COOLDOWN = 0.5  # 0.5 second cooldown for sword attacks
 
     arrow_sound = pygame.mixer.Sound("audio/arrow.mp3") if os.path.exists("audio/arrow.mp3") else None
     sword_sound = pygame.mixer.Sound("audio/sword.mp3") if os.path.exists("audio/sword.mp3") else None
@@ -128,12 +183,12 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
         player_x, player_y = checkpoint.get("p_x", 900), checkpoint.get("p_y", 500)
         kill_count = checkpoint.get("kills", 0)
         heart_value = checkpoint.get("hearts", START_HEARTS)
-        player_coins = checkpoint.get("coins", 0)
+        player_coins = checkpoint.get("coins", 100)
     else:
         player_x, player_y = 900, 500
         kill_count = 0
         heart_value = START_HEARTS
-        player_coins = 0  # Starting economy currency - changed to 0
+        player_coins = 100  # Starting economy currency
 
     # Initialize animated player and companion same as level 1
     animated_player = AnimatedPlayer(player_x, player_y, scale=PLAYER_SCALE)
@@ -145,6 +200,8 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
     enemy_frame_delay = 2
     enemy_shoot_timer = 0
     enemy_shoot_cooldown = 75
+    enemy_max_health = ARCHER_HEALTH  # Track max archer health
+    enemy_health = ARCHER_HEALTH  # Track current archer health
 
     mole_hole_x = random.randint(200, WIDTH - 200)
     mole_hole_y = random.randint(MIN_Y + 30, MAX_Y - 30)
@@ -154,17 +211,19 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
     enemy2_frame_idx = 0
     enemy2_frame_counter = 0
     enemy2_frame_delay = 4
-    enemy2_speed = 1.5
+    enemy2_speed = 3.0  # Increased from 1.5 to 3.0 (twice as fast)
 
     is_swinging = False
     sword_frame_idx = 0
     sword_counter = 0
     has_hit_enemy = False
+    sword_cooldown = 0  # Cooldown timer for sword attacks
     projectiles = []
     
     game_won = False
     game_lost = False
     flash_timer = 0
+    victory_acknowledged = False  # Track if player has pressed space to acknowledge victory
     
     # Add victory screen timer to prevent instant skipping
     victory_screen_timer = 0.0
@@ -173,10 +232,11 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
     sword_on_right = False
     global_esc_timer = 0
 
-    phantom_active = False
-    phantom_timer = 0
-    phantom_cooldown = 0
-    phantom_cooldown_max = 5 * 60 
+    # REMOVED PHANTOM TELEPORT ABILITY
+    # phantom_active = False
+    # phantom_timer = 0
+    # phantom_cooldown = 0
+    # phantom_cooldown_max = 5 * 60 
     enemy_target_lock_x = player_x
     enemy_target_lock_y = player_y
 
@@ -184,10 +244,13 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
     audio_fail_played = False
     player_inventory = []
     
-    # Add variables for colosseum ticket purchase
-    colosseum_ticket_bought = False
-    ticket_congratulations_timer = 0.0
-    ticket_congratulations_delay = 0.1
+    # Shield bubble mechanic - now requires purchase
+    shield_active = False
+    shield_purchased = False
+    shield_notification_timer = 0  # Timer for shield unlock notification
+    
+    # Blood spray effects
+    blood_sprays = []
 
     # INITIALIZE DEALER: Top-right boundary position assignment
     level2_dealer = Dealer(MAX_X - 150, MIN_Y + 90, scale=0.5)
@@ -220,62 +283,70 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
                     e_pressed = True
                 elif event.key == pygame.K_RETURN:
                     enter_pressed = True
+                # Space key to acknowledge victory and unpause game
+                elif event.key == pygame.K_SPACE:
+                    if game_won and not victory_acknowledged:
+                        victory_acknowledged = True
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1: 
                     left_click_pressed = True
-                    # Block combat swings if interacting with Shop Menu
-                    if not is_swinging and not game_won and not game_lost and not level2_dealer.shop_open:
+                    # Block combat swings if interacting with Shop Menu OR if on cooldown OR if shield is active
+                    if not is_swinging and not game_won and not game_lost and not level2_dealer.shop_open and sword_cooldown <= 0 and not shield_active:
                         is_swinging = True
                         if game_sounds_enabled and sword_sound: sword_sound.play()
                         sword_frame_idx = 0
                         sword_counter = 0
                         has_hit_enemy = False
+                        sword_cooldown = SWORD_ATTACK_COOLDOWN  # Start cooldown
                 
+                # RIGHT CLICK FOR SHIELD (only if purchased)
                 if event.button == 3: 
-                    if phantom_cooldown == 0 and not phantom_active and not level2_dealer.shop_open:
-                        phantom_active = True
-                        phantom_timer = 0
-                        enemy_target_lock_x = player_x
-                        enemy_target_lock_y = player_y
+                    if not game_won and not game_lost and not level2_dealer.shop_open and shield_purchased:
+                        shield_active = True
 
+            # RIGHT CLICK RELEASE DEACTIVATES SHIELD
             if event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 3: 
-                    if phantom_active:
-                        phantom_active = False
-                        phantom_cooldown = phantom_cooldown_max
-                        player_x, player_y = enemy_x - 70, enemy_y
-                        player_x = max(MIN_X, min(MAX_X, player_x))
-                        player_y = max(MIN_Y, min(MAX_Y, player_y))
+                    shield_active = False
 
         keys = pygame.key.get_pressed()
-        if not game_won and not game_lost and not phantom_active and not level2_dealer.shop_open:
+        if not game_won and not game_lost and not level2_dealer.shop_open:
             if keys[pygame.K_d]:
                 sword_on_right = True
             elif keys[pygame.K_a]:
                 sword_on_right = False
-
-        # --- UNTARGETABLE PHANTOM PROCESSOR ---
-        if phantom_active and not game_won and not game_lost:
-            phantom_timer += 1
-            if phantom_timer <= 60:
-                player_x, player_y = mouse_pos[0], mouse_pos[1]
-                player_x = max(MIN_X, min(MAX_X, player_x))
-                player_y = max(MIN_Y, min(MAX_Y, player_y))
-            else:
-                phantom_active = False
-                phantom_cooldown = phantom_cooldown_max
-                player_x, player_y = enemy_x - 70, enemy_y
-                player_x = max(MIN_X, min(MAX_X, player_x))
-                player_y = max(MIN_Y, min(MAX_Y, player_y))
         
-        if not phantom_active and phantom_cooldown > 0:
-            phantom_cooldown -= 1
+        # Update shield notification timer
+        if shield_notification_timer > 0:
+            shield_notification_timer -= 1.0 / 60.0  # Decrease by time per frame
+            # Allow SPACE to dismiss notification
+            if keys[pygame.K_SPACE]:
+                shield_notification_timer = 0
 
-        # --- GAME STATE UPDATE ---
-        if not game_won and not game_lost and not colosseum_ticket_bought:
-            
-            # RUN DEALER COMPONENT PROCESSOR
+        # REMOVED PHANTOM TELEPORT PROCESSOR
+        # if phantom_active and not game_won and not game_lost:
+        #     phantom_timer += 1
+        #     if phantom_timer <= 60:
+        #         player_x, player_y = mouse_pos[0], mouse_pos[1]
+        #         player_x = max(MIN_X, min(MAX_X, player_x))
+        #         player_y = max(MIN_Y, min(MAX_Y, player_y))
+        #     else:
+        #         phantom_active = False
+        #         phantom_cooldown = phantom_cooldown_max
+        #         player_x, player_y = enemy_x - 70, enemy_y
+        #         player_x = max(MIN_X, min(MAX_X, player_x))
+        #         player_y = max(MIN_Y, min(MAX_Y, player_y))
+        
+        # if not phantom_active and phantom_cooldown > 0:
+        #     phantom_cooldown -= 1
+        
+        # Update sword cooldown
+        if sword_cooldown > 0:
+            sword_cooldown -= 1.0 / 60.0  # Decrease by time per frame (assuming 60 FPS)
+
+        # --- DEALER PROCESSING (Always active when game is paused or after acknowledging victory) ---
+        if not game_lost and (victory_acknowledged or not game_won):
             shop_action = level2_dealer.update(player_x, player_y, e_pressed, keys, enter_pressed)
             if shop_action != -1:
                 chosen_item = level2_dealer.items[shop_action]
@@ -286,179 +357,234 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
                     player_coins, purchased_item = level2_dealer.buy_item(shop_action, player_coins)
                     if purchased_item != "INSUFFICIENT_FUNDS":
                         player_inventory.append(purchased_item)
-                        # Check if Colosseum Ticket was purchased
-                        if purchased_item == "Colosseum Ticket":
-                            colosseum_ticket_bought = True
-                            level2_dealer.shop_open = False  # Close the shop
+                        
+                        # Handle special item purchases
+                        if purchased_item == "Shield":
+                            shield_purchased = True
+                            shield_notification_timer = 5.0  # Show notification for 5 seconds
+                        elif purchased_item == "Extra Heart":
+                            heart_value = min(heart_value + 1, START_HEARTS + 1)  # Add 1 heart, max START_HEARTS + 1
+                        
+                        # If player just bought the ticket after winning, close shop to show victory screen
+                        if game_won and purchased_item == "Colosseum Ticket":
+                            level2_dealer.shop_open = False  # Close shop
 
+        # --- PLAYER MOVEMENT AND ANIMATION UPDATE (Allow after victory acknowledgment but not during unacknowledged victory) ---
+        if (not game_won or victory_acknowledged) and not game_lost:
             # Freeze entity processing loop mechanics while shopping menu context is live
             if not level2_dealer.shop_open:
-                if not phantom_active:
-                    player_moving = False
-                    if keys[pygame.K_w]: player_y -= PLAYER_SPEED; player_moving = True
-                    if keys[pygame.K_s]: player_y += PLAYER_SPEED; player_moving = True
-                    if keys[pygame.K_a]: player_x -= PLAYER_SPEED; player_moving = True
-                    if keys[pygame.K_d]: player_x += PLAYER_SPEED; player_moving = True
+                # REMOVED phantom_active check since phantom is removed
+                player_moving = False
+                if keys[pygame.K_w]: player_y -= PLAYER_SPEED; player_moving = True
+                if keys[pygame.K_s]: player_y += PLAYER_SPEED; player_moving = True
+                if keys[pygame.K_a]: player_x -= PLAYER_SPEED; player_moving = True
+                if keys[pygame.K_d]: player_x += PLAYER_SPEED; player_moving = True
 
-                    player_x = max(MIN_X, min(MAX_X, player_x))
-                    player_y = max(MIN_Y, min(MAX_Y, player_y))
-                    
-                    # Update animated player movement
-                    animated_player.x = player_x
-                    animated_player.y = player_y
-                    animated_player.update_movement(keys)
-                    animated_player.update()
-                    
-                    # Update companion to follow player
-                    animated_patroclus.follow_player(player_x - 40, player_y + 40)
-                    healing_result = animated_patroclus.update()
-                    
-                    # Check if healing completed and heal the player
-                    if healing_result == "healing_complete":
-                        old_hearts = heart_value
-                        # Increase player heart value in level 2
-                        heart_value = min(heart_value + 1, START_HEARTS)  # Increase hearts, max START_HEARTS
-                        print(f"✓ LEVEL2 HEALED: Player hearts {old_hearts} → {heart_value}")
-                else:
-                    player_moving = False
+                player_x = max(MIN_X, min(MAX_X, player_x))
+                player_y = max(MIN_Y, min(MAX_Y, player_y))
+                
+                # Update animated player movement
+                animated_player.x = player_x
+                animated_player.y = player_y
+                animated_player.update_movement(keys)
+                animated_player.update()
+                
+                # Update companion to follow player
+                animated_patroclus.follow_player(player_x - 40, player_y + 40)
+                healing_result = animated_patroclus.update()
+                
+                # Check if healing completed and heal the player
+                if healing_result == "healing_complete":
+                    old_hearts = heart_value
+                    # Increase player heart value in level 2
+                    heart_value = min(heart_value + 1, START_HEARTS)  # Increase hearts, max START_HEARTS
+                    print(f"✓ LEVEL2 HEALED: Player hearts {old_hearts} → {heart_value}")
 
                 # Calculate actual player center for targeting
                 player_rect = animated_player.get_rect()
                 player_center_x = player_rect.centerx
                 player_center_y = player_rect.centery
                 
-                current_target_x = enemy_target_lock_x if phantom_active else player_center_x
-                current_target_y = enemy_target_lock_y if phantom_active else player_center_y
+                # REMOVED phantom target lock - archer now always targets actual player
+                current_target_x = player_center_x
+                current_target_y = player_center_y
 
-                enemy_frame_counter += 1
-                if enemy_frame_counter >= enemy_frame_delay:
-                    enemy_frame_counter = 0
-                    enemy_frame_idx = (enemy_frame_idx + 1) % len(enemy_frames)
+                # --- ENEMY AI AND COMBAT (Only run when game is NOT won) ---
+                if not game_won:
+                    enemy_frame_counter += 1
+                    if enemy_frame_counter >= enemy_frame_delay:
+                        enemy_frame_counter = 0
+                        enemy_frame_idx = (enemy_frame_idx + 1) % len(enemy_frames)
 
-                dx = player_x - enemy_x
-                dy = player_y - enemy_y
-                dist = math.hypot(dx, dy)
+                    # ARCHER AI: Run away from player when player moves
+                    dx = player_x - enemy_x
+                    dy = player_y - enemy_y
+                    dist = math.hypot(dx, dy)
 
-                if player_moving and dist > MIN_DISTANCE:
-                    if dist == 0: dist = 1
-                    enemy_x += (dx / dist) * 2
-                    enemy_y += (dy / dist) * 2
-                enemy_x = max(MIN_X, min(MAX_X, enemy_x))
-                enemy_y = max(MIN_Y, min(MAX_Y, enemy_y))
+                    if player_moving:
+                        # Run AWAY from player - calculate new position first
+                        if dist > 0:
+                            new_enemy_x = enemy_x - (dx / dist) * 3  # Move away at speed 3
+                            new_enemy_y = enemy_y - (dy / dist) * 3
+                            
+                            # Check if new position would be against a wall
+                            margin = 50  # Keep away from edges
+                            if new_enemy_x < MIN_X + margin or new_enemy_x > MAX_X - margin:
+                                # Move perpendicular to avoid wall (circle around)
+                                new_enemy_x = enemy_x + (dy / dist) * 3  # Move perpendicular
+                            if new_enemy_y < MIN_Y + margin or new_enemy_y > MAX_Y - margin:
+                                # Move perpendicular to avoid wall (circle around)
+                                new_enemy_y = enemy_y - (dx / dist) * 3  # Move perpendicular
+                            
+                            enemy_x = new_enemy_x
+                            enemy_y = new_enemy_y
+                    else:
+                        # When player is stationary, move closer only if far away
+                        if dist > MIN_DISTANCE:
+                            if dist > 0:
+                                enemy_x += (dx / dist) * 2
+                                enemy_y += (dy / dist) * 2
+                                
+                    # Clamp to valid area but allow movement along edges
+                    enemy_x = max(MIN_X + 10, min(MAX_X - 10, enemy_x))
+                    enemy_y = max(MIN_Y + 10, min(MAX_Y - 10, enemy_y))
 
-                enemy_shoot_timer += 1
-                if enemy_shoot_timer >= enemy_shoot_cooldown:
-                    enemy_shoot_timer = 0
-                    spawn_x = enemy_x + (60 * 0.55)
-                    spawn_y = enemy_y + (20 * 0.55)
-                    proj_dx = current_target_x - spawn_x
-                    proj_dy = current_target_y - spawn_y
-                    proj_dist = math.hypot(proj_dx, proj_dy)
-                    if proj_dist == 0: proj_dist = 1
-                    
-                    if game_sounds_enabled and arrow_sound: arrow_sound.play()
-                    projectiles.append({
-                        "x": spawn_x,
-                        "y": spawn_y,
-                        "vx": (proj_dx / proj_dist) * ARROW_SPEED,
-                        "vy": (proj_dy / proj_dist) * ARROW_SPEED,
-                        "angle": -math.degrees(math.atan2(proj_dy, proj_dx))
-                    })
-
-                if mole_state == "emerging":
-                    mole_y_offset -= 2  
-                    if mole_y_offset <= 0:
-                        mole_y_offset = 0
-                        mole_state = "active"
-                
-                elif mole_state == "active":
-                    # Calculate actual player center for movement targeting and collision
-                    player_rect = animated_player.get_rect()
-                    player_center_x = player_rect.centerx
-                    player_center_y = player_rect.centery
-                    
-                    m_dx = player_center_x - enemy2_x
-                    m_dy = player_center_y - enemy2_y
-                    m_dist = math.hypot(m_dx, m_dy)
-                    if m_dist > 0:
-                        enemy2_x += (m_dx / m_dist) * enemy2_speed
-                        enemy2_y += (m_dy / m_dist) * enemy2_speed
-                    
-                    if math.hypot(player_center_x - enemy2_x, player_center_y - enemy2_y) <= PLAYER_BODY_RADIUS:
-                        heart_value -= 1
-                        flash_timer = 5
-                        if heart_value <= 0: game_lost = True
+                    enemy_shoot_timer += 1
+                    if enemy_shoot_timer >= enemy_shoot_cooldown:
+                        enemy_shoot_timer = 0
+                        spawn_x = enemy_x + (60 * 0.55)
+                        spawn_y = enemy_y + (20 * 0.55)
+                        proj_dx = current_target_x - spawn_x
+                        proj_dy = current_target_y - spawn_y
+                        proj_dist = math.hypot(proj_dx, proj_dy)
+                        if proj_dist == 0: proj_dist = 1
                         
-                        mole_hole_x = random.randint(200, WIDTH - 200)
-                        mole_hole_y = random.randint(MIN_Y + 30, MAX_Y - 30)
-                        enemy2_x, enemy2_y = mole_hole_x, mole_hole_y
-                        mole_y_offset = 50
-                        mole_state = "emerging"
+                        if game_sounds_enabled and arrow_sound: arrow_sound.play()
+                        projectiles.append({
+                            "x": spawn_x,
+                            "y": spawn_y,
+                            "vx": (proj_dx / proj_dist) * ARROW_SPEED,
+                            "vy": (proj_dy / proj_dist) * ARROW_SPEED,
+                            "angle": -math.degrees(math.atan2(proj_dy, proj_dx))
+                        })
 
-                enemy2_frame_counter += 1
-                if enemy2_frame_counter >= enemy2_frame_delay:
-                    enemy2_frame_counter = 0
-                    enemy2_frame_idx = (enemy2_frame_idx + 1) % len(enemy2_attack_frames)
-
-                if is_swinging:
-                    sword_counter += 1
-                    if sword_counter >= 4:  
-                        sword_counter = 0
-                        sword_frame_idx += 1
-                        if sword_frame_idx >= len(sword_frames):
-                            is_swinging = False
-                            sword_frame_idx = 0
-
-                if is_swinging and not has_hit_enemy:
-                    player_rect = animated_player.get_rect()
-                    player_center_x = player_rect.centerx
-                    player_center_y = player_rect.centery
+                    if mole_state == "emerging":
+                        mole_y_offset -= 2  
+                        if mole_y_offset <= 0:
+                            mole_y_offset = 0
+                            mole_state = "active"
                     
-                    if math.hypot(player_center_x - enemy_x, player_center_y - enemy_y) <= SWORD_ATTACK_RANGE:
-                        kill_count += 1
-                        player_coins += 10  # Reward bounty currency upon targets eliminated - changed to 10
-                        has_hit_enemy = True 
-                        enemy_x, enemy_y = 200, 500
-                    
-                    elif mole_state == "active" and math.hypot(player_center_x - enemy2_x, player_center_y - enemy2_y) <= SWORD_ATTACK_RANGE:
-                        has_hit_enemy = True
-                        player_coins += 10  # Changed to 10 coins
-                        mole_hole_x = random.randint(200, WIDTH - 200)
-                        mole_hole_y = random.randint(MIN_Y + 30, MAX_Y - 30)
-                        enemy2_x, enemy2_y = mole_hole_x, mole_hole_y
-                        mole_y_offset = 50
-                        mole_state = "emerging"
-
-                    if kill_count >= WIN_TARGET: 
-                        game_won = True
-
-                projectiles_to_keep = []
-                for projectile in projectiles:
-                    projectile["x"] += projectile["vx"]
-                    projectile["y"] += projectile["vy"]
-                    
-                    player_rect = animated_player.get_rect()
-                    player_center_x = player_rect.centerx
-                    player_center_y = player_rect.centery
-                    
-                    blocked_by_sword = False
-                    if is_swinging and math.hypot(player_center_x - projectile["x"], player_center_y - projectile["y"]) <= SWORD_ATTACK_RANGE:
-                        blocked_by_sword = True
-                        player_coins += 10  # Give 10 coins for cancelling arrow with sword
-                    
-                    if blocked_by_sword: 
-                        continue  
-                    
-                    if math.hypot(player_center_x - projectile["x"], player_center_y - projectile["y"]) <= PLAYER_BODY_RADIUS:
-                        heart_value -= 1
-                        flash_timer = 5 
-                        if heart_value <= 0: game_lost = True
-                        continue 
+                    elif mole_state == "active":
+                        # Calculate actual player center for movement targeting and collision
+                        player_rect = animated_player.get_rect()
+                        player_center_x = player_rect.centerx
+                        player_center_y = player_rect.centery
                         
-                    if (-50 < projectile["x"] < WIDTH + 50 and -50 < projectile["y"] < HEIGHT + 50):
-                        projectiles_to_keep.append(projectile)
+                        m_dx = player_center_x - enemy2_x
+                        m_dy = player_center_y - enemy2_y
+                        m_dist = math.hypot(m_dx, m_dy)
+                        if m_dist > 0:
+                            enemy2_x += (m_dx / m_dist) * enemy2_speed
+                            enemy2_y += (m_dy / m_dist) * enemy2_speed
                         
-                projectiles = projectiles_to_keep
+                        if math.hypot(player_center_x - enemy2_x, player_center_y - enemy2_y) <= PLAYER_BODY_RADIUS:
+                            heart_value -= 1
+                            flash_timer = 5
+                            if heart_value <= 0: game_lost = True
+                            
+                            # Spawn near player (within 150-300 pixels)
+                            spawn_distance = random.randint(150, 300)
+                            spawn_angle = random.uniform(0, 2 * math.pi)
+                            mole_hole_x = player_x + math.cos(spawn_angle) * spawn_distance
+                            mole_hole_y = player_y + math.sin(spawn_angle) * spawn_distance
+                            # Clamp to valid area
+                            mole_hole_x = max(MIN_X + 100, min(MAX_X - 100, mole_hole_x))
+                            mole_hole_y = max(MIN_Y + 30, min(MAX_Y - 30, mole_hole_y))
+                            enemy2_x, enemy2_y = mole_hole_x, mole_hole_y
+                            mole_y_offset = 50
+                            mole_state = "emerging"
+
+                    enemy2_frame_counter += 1
+                    if enemy2_frame_counter >= enemy2_frame_delay:
+                        enemy2_frame_counter = 0
+                        enemy2_frame_idx = (enemy2_frame_idx + 1) % len(enemy2_attack_frames)
+
+                    if is_swinging:
+                        sword_counter += 1
+                        if sword_counter >= 4:  
+                            sword_counter = 0
+                            sword_frame_idx += 1
+                            if sword_frame_idx >= len(sword_frames):
+                                is_swinging = False
+                                sword_frame_idx = 0
+
+                    if is_swinging and not has_hit_enemy:
+                        player_rect = animated_player.get_rect()
+                        player_center_x = player_rect.centerx
+                        player_center_y = player_rect.centery
+                        
+                        if math.hypot(player_center_x - enemy_x, player_center_y - enemy_y) <= SWORD_ATTACK_RANGE:
+                            enemy_health -= 1  # Reduce archer health
+                            has_hit_enemy = True
+                            # Create blood spray effect
+                            blood_sprays.append(BloodSpray(enemy_x, enemy_y))
+                            if enemy_health <= 0:
+                                kill_count += 1
+                                player_coins += 25  # Reward bounty currency upon targets eliminated
+                                enemy_x, enemy_y = 200, 500
+                                enemy_health = ARCHER_HEALTH  # Reset health for next archer
+                        
+                        elif mole_state == "active" and math.hypot(player_center_x - enemy2_x, player_center_y - enemy2_y) <= SWORD_ATTACK_RANGE:
+                            has_hit_enemy = True
+                            player_coins += 15
+                            # Create blood spray effect
+                            blood_sprays.append(BloodSpray(enemy2_x, enemy2_y))
+                            # Spawn near player (within 150-300 pixels)
+                            spawn_distance = random.randint(150, 300)
+                            spawn_angle = random.uniform(0, 2 * math.pi)
+                            mole_hole_x = player_x + math.cos(spawn_angle) * spawn_distance
+                            mole_hole_y = player_y + math.sin(spawn_angle) * spawn_distance
+                            # Clamp to valid area
+                            mole_hole_x = max(MIN_X + 100, min(MAX_X - 100, mole_hole_x))
+                            mole_hole_y = max(MIN_Y + 30, min(MAX_Y - 30, mole_hole_y))
+                            enemy2_x, enemy2_y = mole_hole_x, mole_hole_y
+                            mole_y_offset = 50
+                            mole_state = "emerging"
+
+                        if kill_count >= WIN_TARGET: 
+                            game_won = True
+
+                    projectiles_to_keep = []
+                    for projectile in projectiles:
+                        projectile["x"] += projectile["vx"]
+                        projectile["y"] += projectile["vy"]
+                        
+                        player_rect = animated_player.get_rect()
+                        player_center_x = player_rect.centerx
+                        player_center_y = player_rect.centery
+                        
+                        blocked_by_sword = False
+                        if is_swinging and math.hypot(player_center_x - projectile["x"], player_center_y - projectile["y"]) <= SWORD_ATTACK_RANGE:
+                            blocked_by_sword = True
+                        
+                        # Check if blocked by shield
+                        blocked_by_shield = False
+                        if shield_active and math.hypot(player_center_x - projectile["x"], player_center_y - projectile["y"]) <= 60:
+                            blocked_by_shield = True
+                        
+                        if blocked_by_sword or blocked_by_shield: 
+                            continue  
+                        
+                        if math.hypot(player_center_x - projectile["x"], player_center_y - projectile["y"]) <= PLAYER_BODY_RADIUS:
+                            heart_value -= 1
+                            flash_timer = 5 
+                            if heart_value <= 0: game_lost = True
+                            continue 
+                            
+                        if (-50 < projectile["x"] < WIDTH + 50 and -50 < projectile["y"] < HEIGHT + 50):
+                            projectiles_to_keep.append(projectile)
+                            
+                    projectiles = projectiles_to_keep
 
         # --- RENDERING ENGINE ---
         screen.blit(background, (0, 0))
@@ -486,8 +612,8 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
         # Render Dealer Environment Elements
         level2_dealer.draw(screen, player_x, player_y, player_coins)
 
-        # Only draw game entities when shop is closed AND colosseum ticket congratulations is not active
-        if not level2_dealer.shop_open and not colosseum_ticket_bought:
+        # Only draw game entities when shop is closed
+        if not level2_dealer.shop_open:
             # Draw animated player and companion
             animated_player.draw(screen)
             animated_patroclus.draw(screen)
@@ -519,19 +645,57 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
 
             enemy_rect = enemy_frames[enemy_frame_idx].get_rect(center=(int(enemy_x), int(enemy_y)))
             screen.blit(enemy_frames[enemy_frame_idx], enemy_rect)
+            
+            # Draw archer health bar if damaged
+            if enemy_health < enemy_max_health:
+                draw_health_bar(screen, int(enemy_x), int(enemy_y) - 40, enemy_health, enemy_max_health, width=60, height=7)
 
             for projectile in projectiles:
                 rotated_arrow = pygame.transform.rotate(projectile_base_img, projectile["angle"])
                 screen.blit(rotated_arrow, rotated_arrow.get_rect(center=(int(projectile["x"]), int(projectile["y"]))))
 
+            # Draw blood spray effects
+            dt = clock.get_time() / 1000.0
+            for spray in blood_sprays[:]:
+                if not spray.update(dt):
+                    blood_sprays.remove(spray)
+                spray.draw(screen)
+
             bard.update()
             bard.draw(screen)
+            
+            # Draw shield bubble if active
+            if shield_active:
+                player_rect = animated_player.get_rect()
+                player_center_x = player_rect.centerx
+                player_center_y = player_rect.centery
+                
+                shield_surf = pygame.Surface((120, 120), pygame.SRCALPHA)
+                pygame.draw.circle(shield_surf, (100, 150, 255, 80), (60, 60), 60)  # Light transparent blue
+                pygame.draw.circle(shield_surf, (150, 200, 255, 120), (60, 60), 60, 3)  # Brighter blue border
+                screen.blit(shield_surf, (player_center_x - 60, player_center_y - 60))
 
         if flash_timer > 0:
             flash_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
             flash_surf.fill((255, 0, 0, 75)) 
             screen.blit(flash_surf, (0, 0))
             flash_timer -= 1
+        
+        # Shield unlock notification
+        if shield_notification_timer > 0:
+            notif_bg = pygame.Surface((500, 120), pygame.SRCALPHA)
+            pygame.draw.rect(notif_bg, (0, 0, 0, 200), (0, 0, 500, 120), border_radius=10)
+            pygame.draw.rect(notif_bg, (100, 150, 255), (0, 0, 500, 120), 3, border_radius=10)
+            screen.blit(notif_bg, (WIDTH // 2 - 250, 200))
+            
+            notif_title = FONT_SCORE.render("SHIELD UNLOCKED!", True, (100, 255, 100))
+            screen.blit(notif_title, (WIDTH // 2 - notif_title.get_width() // 2, 220))
+            
+            notif_text = pygame.font.SysFont("Arial", 24, bold=True).render("Press RIGHT CLICK to activate shield", True, (255, 255, 255))
+            screen.blit(notif_text, (WIDTH // 2 - notif_text.get_width() // 2, 260))
+            
+            dismiss_text = pygame.font.SysFont("Arial", 20).render("Press SPACE to dismiss", True, (200, 200, 200))
+            screen.blit(dismiss_text, (WIDTH // 2 - dismiss_text.get_width() // 2, 290))
 
         score_surface = FONT_SCORE.render(f"Kills: {kill_count} / {WIN_TARGET}", True, (255, 255, 255))
         screen.blit(score_surface, (20, 20))
@@ -552,80 +716,75 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
             heart_y = 155 if (timer and timer.is_running and player_name) else 105
             draw_heart(screen, x=35 + (h * 35), y=heart_y, size=24)
 
-        # Handle Colosseum Ticket congratulations screen
-        if colosseum_ticket_bought:
-            ticket_congratulations_timer += clock.get_time() / 1000.0  # Add elapsed time in seconds
-            
-            if not audio_win_played:
-                if game_sounds_enabled and win_sound: win_sound.play()
-                audio_win_played = True
-            
-            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 150))
-            screen.blit(overlay, (0, 0))
-            
-            # Congratulations message
-            congrats_surface = FONT_WIN.render("CONGRATULATIONS!", True, (255, 215, 0))
-            screen.blit(congrats_surface, congrats_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 80)))
-            
-            secret_surface = FONT_SCORE.render("You found the secret key that goes to the final level!", True, (255, 255, 255))
-            screen.blit(secret_surface, secret_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 20)))
-
-            level3_btn_rect = pygame.Rect((WIDTH // 2 - 120, HEIGHT // 2 + 50), (240, 65))
-            
-            # Only allow clicking after the delay period
-            if ticket_congratulations_timer >= ticket_congratulations_delay:
-                if level3_btn_rect.collidepoint(mouse_pos):
-                    pygame.draw.rect(screen, (80, 80, 80), level3_btn_rect, border_radius=10)
-                    if left_click_pressed:
-                        if game_sounds_enabled and click_sound: click_sound.play()
-                        return "completed", None  # This will trigger level 3
-                else:
-                    pygame.draw.rect(screen, (45, 45, 45), level3_btn_rect, border_radius=10)
-            else:
-                # Button disabled during delay
-                pygame.draw.rect(screen, (45, 45, 45), level3_btn_rect, border_radius=10)
-
-            # Always show "Go to Level 3" text
-            btn_text = FONT_BUTTON.render("Go to Level 3", True, (255, 255, 255))
-
-            pygame.draw.rect(screen, (200, 200, 200), level3_btn_rect, 3, border_radius=10)
-            screen.blit(btn_text, btn_text.get_rect(center=level3_btn_rect.center))
-
-        elif game_won:
+        if game_won:
             victory_screen_timer += clock.get_time() / 1000.0  # Add elapsed time in seconds
             
             if not audio_win_played:
                 if game_sounds_enabled and win_sound: win_sound.play()
                 audio_win_played = True
             
-            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 150))
-            screen.blit(overlay, (0, 0))
+            # Check if player has bought the Colosseum Ticket
+            has_ticket = "Colosseum Ticket" in player_inventory
             
-            win_surface = FONT_WIN.render("YOU WIN!", True, (0, 255, 100))
-            screen.blit(win_surface, win_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 60)))
-
-            next_btn_rect = pygame.Rect((WIDTH // 2 - 120, HEIGHT // 2 + 50), (240, 65))
+            # Only show overlay and victory text if not acknowledged OR if acknowledged but no ticket yet
+            if not victory_acknowledged or (victory_acknowledged and not has_ticket):
+                overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 150))
+                screen.blit(overlay, (0, 0))
+                
+                win_surface = FONT_WIN.render("YOU WIN!", True, (0, 255, 100))
+                screen.blit(win_surface, win_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 60)))
             
-            # Only allow clicking after the delay period
-            if victory_screen_timer >= victory_screen_delay:
-                if next_btn_rect.collidepoint(mouse_pos):
-                    pygame.draw.rect(screen, (80, 80, 80), next_btn_rect, border_radius=10)
-                    if left_click_pressed:
-                        if game_sounds_enabled and click_sound: click_sound.play()
-                        return "completed", None
+            # Show different UI based on whether victory is acknowledged
+            if not victory_acknowledged:
+                # Initial victory screen - show press space message
+                if not has_ticket:
+                    message1 = FONT_SCORE.render("You need a Colosseum Ticket to proceed!", True, (255, 200, 50))
+                    screen.blit(message1, message1.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 20)))
                 else:
-                    pygame.draw.rect(screen, (45, 45, 45), next_btn_rect, border_radius=10)
-            else:
-                # Button disabled during delay - no visual indication
-                pygame.draw.rect(screen, (45, 45, 45), next_btn_rect, border_radius=10)
+                    message1 = FONT_SCORE.render("You have the Colosseum Ticket!", True, (100, 255, 100))
+                    screen.blit(message1, message1.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 20)))
+                
+                # Press space instruction
+                space_msg = FONT_SCORE.render("Press SPACE to continue", True, (255, 255, 255))
+                screen.blit(space_msg, space_msg.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 70)))
+                
+            elif victory_acknowledged:
+                # After pressing space - show appropriate message/button
+                if has_ticket:
+                    # Show "Next Level" button with overlay
+                    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                    overlay.fill((0, 0, 0, 150))
+                    screen.blit(overlay, (0, 0))
+                    
+                    win_surface = FONT_WIN.render("YOU WIN!", True, (0, 255, 100))
+                    screen.blit(win_surface, win_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 60)))
+                    
+                    next_btn_rect = pygame.Rect((WIDTH // 2 - 120, HEIGHT // 2 + 50), (240, 65))
+                    
+                    # Only allow clicking after the delay period
+                    if victory_screen_timer >= victory_screen_delay:
+                        if next_btn_rect.collidepoint(mouse_pos):
+                            pygame.draw.rect(screen, (80, 80, 80), next_btn_rect, border_radius=10)
+                            if left_click_pressed:
+                                if game_sounds_enabled and click_sound: click_sound.play()
+                                return "completed", None
+                        else:
+                            pygame.draw.rect(screen, (45, 45, 45), next_btn_rect, border_radius=10)
+                    else:
+                        # Button disabled during delay - no visual indication
+                        pygame.draw.rect(screen, (45, 45, 45), next_btn_rect, border_radius=10)
 
-            # Always show "Next Level" text without countdown
-            btn_text = FONT_BUTTON.render("Next Level", True, (255, 255, 255))
-
-            pygame.draw.rect(screen, (200, 200, 200), next_btn_rect, 3, border_radius=10)
-            screen.blit(btn_text, btn_text.get_rect(center=next_btn_rect.center))
+                    # Show "Next Level" text
+                    btn_text = FONT_BUTTON.render("Next Level", True, (255, 255, 255))
+                    pygame.draw.rect(screen, (200, 200, 200), next_btn_rect, 3, border_radius=10)
+                    screen.blit(btn_text, btn_text.get_rect(center=next_btn_rect.center))
+                else:
+                    # No ticket - display message to buy ticket from dealer (with overlay)
+                    message1 = FONT_SCORE.render("Visit the Dealer to buy a ticket!", True, (255, 200, 50))
+                    message2 = FONT_SCORE.render("Colosseum Ticket costs 15 coins", True, (255, 200, 50))
+                    screen.blit(message1, message1.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 20)))
+                    screen.blit(message2, message2.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 60)))
 
         if game_lost:
             if not audio_fail_played:
@@ -644,9 +803,10 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
                     if game_sounds_enabled and click_sound: click_sound.play()
                     player_x, player_y = 900, 500  
                     enemy_x, enemy_y = 200, 500
+                    enemy_health = ARCHER_HEALTH  # Reset archer health
                     kill_count = 0
                     heart_value = START_HEARTS
-                    player_coins = 0
+                    player_coins = 100
                     projectiles.clear()
                     audio_fail_played = False
                     game_lost = False

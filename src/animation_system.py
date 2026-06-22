@@ -1,6 +1,7 @@
 import pygame
 import os
 import math
+import sys
 
 # Animation settings
 ANIMATION_SPEED = 0.15  # Higher = faster animation
@@ -23,11 +24,38 @@ class Animation:
                 pass  # Silently skip missing frames
         
         if not self.frames:
-            # Use fallback - try to load default player.png
-            try:
-                fallback_img = pygame.image.load("sprites/player.png").convert_alpha()
-                self.frames.append(fallback_img)
-            except:
+            # Use fallback - try to load default player.png from multiple locations
+            fallback_paths = []
+            
+            if getattr(sys, 'frozen', False):
+                # Running as executable
+                exe_dir = os.path.dirname(sys.executable)
+                fallback_paths = [
+                    os.path.join(exe_dir, "sprites", "player.png"),
+                    os.path.join(exe_dir, "images", "player.png"),
+                    "sprites/player.png",
+                    "images/player.png"
+                ]
+            else:
+                # Running as script
+                fallback_paths = [
+                    "sprites/player.png",
+                    "images/player.png",
+                    os.path.join("..", "sprites", "player.png"),
+                    os.path.join("..", "images", "player.png")
+                ]
+            
+            loaded = False
+            for fallback_path in fallback_paths:
+                try:
+                    fallback_img = pygame.image.load(fallback_path).convert_alpha()
+                    self.frames.append(fallback_img)
+                    loaded = True
+                    break
+                except:
+                    continue
+            
+            if not loaded:
                 # Create colored placeholder
                 self.frames.append(pygame.Surface((64, 64)))
                 self.frames[0].fill((255, 0, 255))
@@ -63,9 +91,15 @@ class AnimatedPlayer:
         self.state = "idle"  # idle, walking, attacking
         self.scale = scale
         
-        # Get base path for animations (go up one level from src to root, then to animations)
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        root_dir = os.path.dirname(script_dir)  # Go up one level from src to root
+        # Get base path for animations - handle both executable and script environments
+        if getattr(sys, 'frozen', False):
+            # Running as executable
+            root_dir = os.path.dirname(sys.executable)
+        else:
+            # Running as script (go up one level from src to root, then to animations)
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            root_dir = os.path.dirname(script_dir)  # Go up one level from src to root
+        
         base_path = os.path.join(root_dir, "animations", "Player")
         base_path = os.path.abspath(base_path)
         
@@ -201,9 +235,15 @@ class AnimatedPatroclus:
         self.state = "idle"  # idle, walking, healing
         self.scale = scale
         
-        # Get base path for animations (go up one level from src to root, then to animations)
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        root_dir = os.path.dirname(script_dir)  # Go up one level from src to root
+        # Get base path for animations - handle both executable and script environments
+        if getattr(sys, 'frozen', False):
+            # Running as executable
+            root_dir = os.path.dirname(sys.executable)
+        else:
+            # Running as script (go up one level from src to root, then to animations)
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            root_dir = os.path.dirname(script_dir)  # Go up one level from src to root
+        
         base_path = os.path.join(root_dir, "animations", "Player")
         base_path = os.path.abspath(base_path)
         

@@ -5,6 +5,38 @@ import os
 import random
 import math
 
+# Helper function for executable path resolution
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if getattr(sys, 'frozen', False):
+        # Running as executable
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # Running as script
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    return os.path.join(base_path, relative_path)
+
+def load_image_safe(path, fallback_color=(255, 0, 255), size=(50, 50)):
+    """Safely load an image with fallback"""
+    # Try multiple path variations
+    paths_to_try = [
+        path,
+        get_resource_path(path)
+    ]
+    
+    for p in paths_to_try:
+        try:
+            if os.path.exists(p):
+                return pygame.image.load(p).convert_alpha()
+        except:
+            continue
+    
+    # Create fallback surface
+    surf = pygame.Surface(size, pygame.SRCALPHA)
+    surf.fill(fallback_color)
+    return surf
+
 from src.level2 import start_level_2
 import src.level3 as level3  # Import Level 3 package
 import src.cutscene as cutscene  # Import cutscene module
@@ -19,7 +51,7 @@ pygame.mixer.init()
 
 WIDTH, HEIGHT = 1280, 720  
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Achilles & Patroclus - Master Engine")
+pygame.display.set_caption("Achilles and Patroclus")
 
 FPS = 60
 clock = pygame.time.Clock()
@@ -66,6 +98,63 @@ RED = (180, 50, 50)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 SHADOW_COLOR = (30, 30, 50)
+
+### ========================================== ###
+### 2.5. HELPER FUNCTIONS FOR EFFECTS          ###
+### ========================================== ###
+def draw_health_bar(surface, x, y, current_health, max_health, width=50, height=6):
+    """Draw a health bar above an enemy"""
+    # Background (black border)
+    pygame.draw.rect(surface, BLACK, (x - width // 2 - 1, y - 1, width + 2, height + 2))
+    # Red background (lost health)
+    pygame.draw.rect(surface, RED, (x - width // 2, y, width, height))
+    # Green foreground (current health)
+    health_width = int((current_health / max_health) * width)
+    if health_width > 0:
+        pygame.draw.rect(surface, GREEN, (x - width // 2, y, health_width, height))
+
+class BloodSpray:
+    """Blood spray particle effect when enemy is hit"""
+    def __init__(self, x, y):
+        self.particles = []
+        # Create 8-15 blood particles
+        num_particles = random.randint(8, 15)
+        for _ in range(num_particles):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(50, 150)
+            self.particles.append({
+                'x': x,
+                'y': y,
+                'vx': math.cos(angle) * speed,
+                'vy': math.sin(angle) * speed,
+                'life': random.uniform(0.3, 0.6),  # Lifetime in seconds
+                'size': random.randint(3, 7)
+            })
+    
+    def update(self, dt):
+        """Update particle positions and lifetimes"""
+        for particle in self.particles[:]:
+            particle['x'] += particle['vx'] * dt
+            particle['y'] += particle['vy'] * dt
+            particle['vy'] += 200 * dt  # Gravity
+            particle['life'] -= dt
+            if particle['life'] <= 0:
+                self.particles.remove(particle)
+        return len(self.particles) > 0  # Return True if still alive
+    
+    def draw(self, surface):
+        """Draw blood particles"""
+        for particle in self.particles:
+            alpha = int(255 * (particle['life'] / 0.6))  # Fade out
+            color = (180, 0, 0, min(255, alpha))
+            # Create a temporary surface with per-pixel alpha
+            particle_surf = pygame.Surface((particle['size'], particle['size']), pygame.SRCALPHA)
+            pygame.draw.circle(particle_surf, color, (particle['size'] // 2, particle['size'] // 2), particle['size'] // 2)
+            surface.blit(particle_surf, (int(particle['x']), int(particle['y'])))
+
+# Global list to store active blood spray effects
+blood_sprays = []
+
 PLACEHOLDER_BG = (25, 25, 35)
 
 menu_shadow = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -75,10 +164,21 @@ menu_shadow.fill((0, 0, 0, 120))
 ### 3. ASSETS & SCROLLING CONFIGURATION        ###
 ### ========================================== ###
 background = None
-if os.path.exists("backgrounds/jungle.jpg"):
-    background = pygame.image.load("backgrounds/jungle.jpg").convert()
-    background = pygame.transform.scale(background, (WIDTH, HEIGHT))
-else:
+bg_paths = [
+    get_resource_path("backgrounds/jungle.jpg"),
+    "backgrounds/jungle.jpg"
+]
+
+for bg_path in bg_paths:
+    try:
+        if os.path.exists(bg_path):
+            background = pygame.image.load(bg_path).convert()
+            background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+            break
+    except:
+        continue
+
+if not background:
     background = pygame.Surface((WIDTH, HEIGHT))
     background.fill(PLACEHOLDER_BG)
 
@@ -91,10 +191,20 @@ if os.path.exists("settings.png"):
     settings_bg = pygame.transform.scale(settings_bg, (WIDTH, HEIGHT))
 
 game_bg = None
-if os.path.exists("images/lv1background.png"):
-    game_bg = pygame.image.load("images/lv1background.png").convert()
-elif os.path.exists("backgrounds/forest.png"):
-    game_bg = pygame.image.load("backgrounds/forest.png").convert()
+game_bg_paths = [
+    get_resource_path("images/lv1background.png"),
+    "images/lv1background.png",
+    get_resource_path("backgrounds/forest.png"),
+    "backgrounds/forest.png"
+]
+
+for bg_path in game_bg_paths:
+    try:
+        if os.path.exists(bg_path):
+            game_bg = pygame.image.load(bg_path).convert()
+            break
+    except:
+        continue
 
 if game_bg:
     game_bg = pygame.transform.scale(game_bg, (WIDTH, HEIGHT))
@@ -102,12 +212,8 @@ else:
     game_bg = pygame.Surface((WIDTH, HEIGHT))
     game_bg.fill((40, 40, 40))
 
-try:
-    rock_image = pygame.image.load("sprites/rock.png").convert_alpha()
-    rock_image = pygame.transform.scale(rock_image, (25, 25))
-except FileNotFoundError:
-    rock_image = pygame.Surface((20, 20), pygame.SRCALPHA)
-    pygame.draw.circle(rock_image, (120, 120, 120), (10, 10), 10)
+rock_image = load_image_safe("sprites/rock.png", (120, 120, 120), (25, 25))
+rock_image = pygame.transform.scale(rock_image, (25, 25))
 
 heart_surf = pygame.Surface((24, 24), pygame.SRCALPHA)
 pygame.draw.circle(heart_surf, (220, 40, 40), (6, 8), 6)
@@ -120,12 +226,9 @@ projectile_sprites = pygame.sprite.Group()
 
 chiron_walk_frames = []
 for i in range(6):
-    try:
-        chiron_walk_frames.append(pygame.image.load(join("animations", "Chiron", "Walking", f"Chiron_Walk_{i}.png")).convert_alpha())
-    except FileNotFoundError:
-        fallback = pygame.Surface((50, 50))
-        fallback.fill((255, 0, 0))
-        chiron_walk_frames.append(fallback)
+    frame_path = get_resource_path(join("animations", "Chiron", "Walking", f"Chiron_Walk_{i}.png"))
+    frame = load_image_safe(frame_path, (255, 0, 0), (50, 50))
+    chiron_walk_frames.append(frame)
 
 ### ========================================== ###
 ### 4. UI & ENTITY CLASSES                     ###
@@ -141,7 +244,14 @@ class Bard:
         self.y = (window_height // 2) - (self.frames[0].get_height() // 2)
 
     def _load_frames(self, scale: float) -> list[pygame.Surface]:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        # Handle both executable and script environments
+        if getattr(sys, 'frozen', False):
+            # Running as executable
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            # Running as script
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        
         bard_idle_path = os.path.join(base_dir, "images", "Bard Idle")
         if not os.path.exists(bard_idle_path):
             bard_idle_path = os.path.join(base_dir, "..", "images", "Bard Idle")
@@ -259,23 +369,22 @@ class Player(pygame.sprite.Sprite):
         self.animated_player = AnimatedPlayer(WIDTH // 2, HEIGHT // 2, scale=1.2)
         
         # Create image from animated player for sprite functionality
-        try:
-            self.image = pygame.image.load(join("sprites", "player.png")).convert_alpha()
-        except FileNotFoundError:
-            self.image = pygame.Surface((50, 50))
-            self.image.fill((0, 255, 0))
+        self.image = load_image_safe("sprites/player.png", (0, 255, 0), (50, 50))
             
         self.rect = self.image.get_rect(center = (WIDTH / 2, HEIGHT / 2))
         self.mask = pygame.mask.from_surface(self.image)
         self.direction = pygame.Vector2()
         self.speed = 300
-        self.health = 3 
+        self.health = 2  # Reduced from 3 to 2
         self.stones_left = 20  
         self.invincible_timer = 0
+        self.throw_cooldown = 0  # Cooldown timer for rock throwing
     
     def update(self, dt):
         if self.invincible_timer > 0:
             self.invincible_timer -= dt
+        if self.throw_cooldown > 0:
+            self.throw_cooldown -= dt
         self.movement(dt)
         
         # Update animated player position and animation
@@ -311,14 +420,15 @@ class Chiron(pygame.sprite.Sprite):
         self.player = player_ref
         self.scale = 0.75
         self.border = border_rect
+        self.max_health = 9  # Maximum health (increased from 8 to 9)
+        self.health = 9  # Current health
 
-        if os.path.exists(join("animations","Chiron","Walking","Chiron_Walk_0.png")):
-            try:
-                self.image = pygame.image.load(join("animations","Chiron","Walking","Chiron_Walk_0.png")).convert_alpha()
+        if os.path.exists(get_resource_path("animations/Chiron/Walking/Chiron_Walk_0.png")):
+            self.image = load_image_safe("animations/Chiron/Walking/Chiron_Walk_0.png", (255, 0, 0), (60, 60))
+            try: 
                 self.image = pygame.transform.scale_by(self.image, self.scale)
-            except:
-                self.image = pygame.Surface((60, 60))
-                self.image.fill((255, 0, 0))
+            except: 
+                pass
         else:
             self.image = pygame.Surface((60, 60))
             self.image.fill((255, 0, 0))
@@ -354,6 +464,11 @@ class Chiron(pygame.sprite.Sprite):
             if enemy_vector.length() > 0:
                 enemy_vector = enemy_vector.normalize()
             self.rect.center += enemy_vector * self.speed * dt
+    
+    def draw_health_bar(self, surface):
+        """Draw health bar above Chiron"""
+        if self.health < self.max_health:  # Only show if damaged
+            draw_health_bar(surface, self.rect.centerx, self.rect.top - 10, self.health, self.max_health, width=60, height=7)
 
 
 class Patroclus(pygame.sprite.Sprite):
@@ -364,11 +479,7 @@ class Patroclus(pygame.sprite.Sprite):
         # Initialize animated Patroclus
         self.animated_patroclus = AnimatedPatroclus(WIDTH // 2 - 20, HEIGHT // 2 + 20, scale=1.0)
         
-        try:
-            self.image = pygame.image.load(join("sprites", "player.png")).convert_alpha()
-        except FileNotFoundError:
-            self.image = pygame.Surface((40, 40))
-            self.image.fill((200, 200, 255))
+        self.image = load_image_safe("sprites/player.png", (200, 200, 255), (40, 40))
             
         self.rect = self.image.get_rect(center = (WIDTH / 2 - 20, HEIGHT / 2 + 20))
         self.mask = pygame.mask.from_surface(self.image)
@@ -422,9 +533,10 @@ def keep_in_circle(sprite, center_x, center_y, radius):
 
 buttons = [
     PixelButton("START", WIDTH // 2 - 100, 240, 200, 60),
-    PixelButton("SETTINGS", WIDTH // 2 - 100, 320, 200, 60),
-    PixelButton("CREDITS", WIDTH // 2 - 100, 400, 200, 60),
-    PixelButton("QUIT", WIDTH // 2 - 100, 480, 200, 60),
+    PixelButton("ENDLESS", WIDTH // 2 - 100, 320, 200, 60),  # Wider to fit text
+    PixelButton("SETTINGS", WIDTH // 2 - 100, 400, 200, 60),
+    PixelButton("CREDITS", WIDTH // 2 - 100, 480, 200, 60),
+    PixelButton("QUIT", WIDTH // 2 - 100, 560, 200, 60),
 ]
 
 music_toggle = ToggleButton(WIDTH // 2 - 20, 220)
@@ -451,7 +563,7 @@ start_round = False
 current_active_level = 1
 
 kill_count = 0
-WIN_TARGET = 2
+WIN_TARGET = 1  # Changed to 1 - only need to defeat 1 Chiron enemy
 harm_text_popups = []  
 
 audio_win_played = False
@@ -462,6 +574,7 @@ bard_companion = Bard(window_height=HEIGHT, scale=1.35)
 player = Player(all_sprites)
 patroclus = Patroclus(all_sprites)
 enemy_instance = Chiron((all_sprites, enemy_sprites), 0, player, border)
+# Removed enemy_instance2 - only one Chiron now
 
 triangle_center_x = WIDTH // 2
 triangle_center_y = HEIGHT // 2 - 10
@@ -473,7 +586,7 @@ triangle_points = [
 triangle_bounding_rect = pygame.Rect(triangle_center_x - 35, triangle_center_y - 45, 80, 90)
 
 def reset_entire_game():
-    global kill_count, harm_text_popups, start_round, player, enemy_instance, patroclus, audio_win_played, audio_fail_played
+    global kill_count, harm_text_popups, start_round, player, enemy_instance, patroclus, audio_win_played, audio_fail_played, blood_sprays
     all_sprites.empty()
     enemy_sprites.empty()
     projectile_sprites.empty()
@@ -482,42 +595,54 @@ def reset_entire_game():
     start_round = False
     audio_win_played = False
     audio_fail_played = False
+    blood_sprays = []  # Reset blood sprays
     player = Player(all_sprites)
     patroclus = Patroclus(all_sprites)
     enemy_instance = Chiron((all_sprites, enemy_sprites), 0, player, border)
+    # Removed enemy_instance2 - only one Chiron now
     try:
         pygame.mixer.music.stop()
         pygame.mixer.music.play(loops=-1)
     except: pass
 
 def handle_gameplay_collisions():
-    global kill_count, enemy_instance
+    global kill_count, enemy_instance, blood_sprays
     if not player.alive(): return
 
-    projectile_hits = pygame.sprite.spritecollide(enemy_instance, projectile_sprites, True, pygame.sprite.collide_mask)
-    if projectile_hits and enemy_instance.alive():
-        enemy_instance.kill()
-        kill_count += 1
-        if kill_count < WIN_TARGET:
-            enemy_instance = Chiron((all_sprites, enemy_sprites), 150, player, border)
+    # Check collision for the single enemy
+    if enemy_instance.alive():
+        projectile_hits = pygame.sprite.spritecollide(enemy_instance, projectile_sprites, True, pygame.sprite.collide_mask)
+        if projectile_hits:
+            # Decrement health by the number of projectiles that hit
+            enemy_instance.health -= len(projectile_hits)
+            # Create blood spray effect for each hit
+            for _ in range(len(projectile_hits)):
+                blood_sprays.append(BloodSpray(enemy_instance.rect.centerx, enemy_instance.rect.centery))
+            if enemy_instance.health <= 0:
+                enemy_instance.kill()
+                kill_count += 1
+                # Respawn enemy until WIN_TARGET is reached
+                if kill_count < WIN_TARGET:
+                    enemy_instance = Chiron((all_sprites, enemy_sprites), 150, player, border)
 
-    if pygame.sprite.collide_mask(player, enemy_instance) and enemy_instance.alive():
-        if player.invincible_timer <= 0:
-            player.health -= 1
-            player.invincible_timer = 1.0
-            enemy_instance.teleport_randomly()
-            
-            text_surf = GAME_POPUP_FONT.render("You are harmed!", True, WHITE)
-            w, h = text_surf.get_width() + 20, text_surf.get_height() + 16
-            
-            bubble_surf = pygame.Surface((w, h), pygame.SRCALPHA)
-            pygame.draw.rect(bubble_surf, (200, 40, 40, 230), (0, 0, w, h), border_radius=8) 
-            pygame.draw.rect(bubble_surf, WHITE, (0, 0, w, h), width=2, border_radius=8)
-            bubble_surf.blit(text_surf, (10, 8))
-            
-            rand_x = random.randint(220, WIDTH - 400)
-            rand_y = random.randint(120, HEIGHT - 160)
-            harm_text_popups.append([bubble_surf, (rand_x, rand_y), 1.5])
+        if pygame.sprite.collide_mask(player, enemy_instance):
+            if player.invincible_timer <= 0:
+                player.health -= 1
+                player.invincible_timer = 1.0
+                enemy_instance.teleport_randomly()
+                
+                text_surf = GAME_POPUP_FONT.render("You are harmed!", True, WHITE)
+                w, h = text_surf.get_width() + 20, text_surf.get_height() + 16
+                
+                bubble_surf = pygame.Surface((w, h), pygame.SRCALPHA)
+                pygame.draw.rect(bubble_surf, (200, 40, 40, 230), (0, 0, w, h), border_radius=8) 
+                pygame.draw.rect(bubble_surf, WHITE, (0, 0, w, h), width=2, border_radius=8)
+                bubble_surf.blit(text_surf, (10, 8))
+                
+                rand_x = random.randint(220, WIDTH - 400)
+                rand_y = random.randint(120, HEIGHT - 160)
+                harm_text_popups.append([bubble_surf, (rand_x, rand_y), 1.5])
+                harm_text_popups.append([bubble_surf, (rand_x, rand_y), 1.5])
 
 ### ========================================== ###
 ### 6. CORE APPLICATION LOOP                   ###
@@ -567,6 +692,25 @@ while True:
                     # Add character to name (limit to 15 characters)
                     if len(player_name) < 15 and event.unicode.isprintable():
                         player_name += event.unicode
+        
+        elif scene == "endless_name_input":
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                    if player_name.strip():  # Make sure name isn't empty
+                        current_player_name = player_name.strip()
+                        # Start endless mode
+                        from src import endless_mode
+                        endless_mode.start_endless_mode(bard_companion, current_player_name, game_sounds_toggle.enabled)
+                        scene = "menu"
+                elif event.key == pygame.K_BACKSPACE:
+                    player_name = player_name[:-1]
+                elif event.key == pygame.K_ESCAPE:
+                    scene = "menu"
+                    player_name = ""
+                else:
+                    # Add character to name (limit to 15 characters)
+                    if len(player_name) < 15 and event.unicode.isprintable():
+                        player_name += event.unicode
 
         elif scene == "menu":
             if event.type == pygame.KEYDOWN:
@@ -592,11 +736,15 @@ while True:
                     player_name = ""
                     scene = "name_input"
             elif buttons[1].clicked(event, game_sounds_toggle.enabled):
-                scene = "settings"
+                # ENDLESS MODE button
+                player_name = ""
+                scene = "endless_name_input"
             elif buttons[2].clicked(event, game_sounds_toggle.enabled):
+                scene = "settings"
+            elif buttons[3].clicked(event, game_sounds_toggle.enabled):
                 credits_y = HEIGHT
                 scene = "credits"
-            elif buttons[3].clicked(event, game_sounds_toggle.enabled):
+            elif buttons[4].clicked(event, game_sounds_toggle.enabled):
                 pygame.quit()
                 sys.exit()
 
@@ -637,7 +785,9 @@ while True:
                     if current_player_name:
                         leaderboard.add_score(current_player_name, final_time)
                     current_active_level = 1
-                    scene = "menu"
+                    # Show credits at the end
+                    credits_y = HEIGHT
+                    scene = "credits"
                 else:
                     current_active_level = 1
                     scene = "menu"
@@ -667,14 +817,15 @@ while True:
                 if event.key == pygame.K_ESCAPE:
                     scene = "menu"
                 if kill_count < WIN_TARGET and player.health > 0:
-                    if event.key == pygame.K_1:
+                    if event.key == pygame.K_SPACE or event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
                         start_round = True
-                        enemy_instance.speed = 150
+                        enemy_instance.speed = 150  # Set speed for single enemy
             
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: 
                 if start_round and kill_count < WIN_TARGET and player.health > 0:
-                    if player.stones_left > 0:
+                    if player.stones_left > 0 and player.throw_cooldown <= 0:  # Check cooldown
                         player.stones_left -= 1
+                        player.throw_cooldown = 0.5  # Set 0.5 second cooldown (reduced from 1.0)
                         if game_sounds_toggle.enabled and shoot_sound is not None:
                             shoot_sound.play()
                         
@@ -710,7 +861,9 @@ while True:
                         if current_player_name:
                             leaderboard.add_score(current_player_name, final_time)
                         current_active_level = 1
-                        scene = "menu"
+                        # Show credits at the end
+                        credits_y = HEIGHT
+                        scene = "credits"
                     else:
                         current_active_level = 1
                         scene = "menu"
@@ -734,9 +887,9 @@ while True:
         SCREEN.blit(game_bg, (0, 0))
 
     if scene == "splash":
-        shadow_surf = GAME_LARGE_FONT.render("Achilles & Patroclus", True, SHADOW_COLOR)
+        shadow_surf = GAME_LARGE_FONT.render("ACHILLES AND PATROCLUS", True, SHADOW_COLOR)
         SCREEN.blit(shadow_surf, (WIDTH // 2 - shadow_surf.get_width() // 2 + 5, 105))
-        title_surf = GAME_LARGE_FONT.render("Achilles & Patroclus", True, WHITE)
+        title_surf = GAME_LARGE_FONT.render("ACHILLES AND PATROCLUS", True, WHITE)
         SCREEN.blit(title_surf, (WIDTH // 2 - title_surf.get_width() // 2, 100))
         
         is_hovered = triangle_bounding_rect.collidepoint(mouse_pos)
@@ -772,12 +925,38 @@ while True:
         instruction2 = SMALL_FONT.render("Press ESC to go back", False, WHITE)
         SCREEN.blit(instruction1, (WIDTH // 2 - instruction1.get_width() // 2, 400))
         SCREEN.blit(instruction2, (WIDTH // 2 - instruction2.get_width() // 2, 430))
+    
+    elif scene == "endless_name_input":
+        SCREEN.blit(menu_shadow, (0, 0))
+        
+        # Title
+        title = FONT.render("ENDLESS MODE", False, GOLD if hasattr(pygame, 'GOLD') else (255, 215, 0))
+        SCREEN.blit(title, (WIDTH // 2 - title.get_width() // 2, 150))
+        
+        subtitle = SMALL_FONT.render("ENTER YOUR NAME", False, WHITE)
+        SCREEN.blit(subtitle, (WIDTH // 2 - subtitle.get_width() // 2, 220))
+        
+        # Input box
+        input_box = pygame.Rect(WIDTH // 2 - 200, 300, 400, 60)
+        pygame.draw.rect(SCREEN, WHITE, input_box)
+        pygame.draw.rect(SCREEN, BLACK, input_box, 3)
+        
+        # Player name text
+        name_text = FONT.render(player_name + "|", False, BLACK)
+        text_rect = name_text.get_rect(center=(input_box.centerx, input_box.centery))
+        SCREEN.blit(name_text, text_rect)
+        
+        # Instructions
+        instruction1 = SMALL_FONT.render("Type your name and press ENTER to start", False, WHITE)
+        instruction2 = SMALL_FONT.render("Press ESC to go back", False, WHITE)
+        SCREEN.blit(instruction1, (WIDTH // 2 - instruction1.get_width() // 2, 400))
+        SCREEN.blit(instruction2, (WIDTH // 2 - instruction2.get_width() // 2, 430))
 
     elif scene == "menu":
         SCREEN.blit(menu_shadow, (0, 0))
-        title_shadow = FONT.render("Achilles & Patroclus", False, SHADOW_COLOR)
+        title_shadow = FONT.render("ACHILLES AND PATROCLUS", False, SHADOW_COLOR)
         SCREEN.blit(title_shadow, (WIDTH // 2 - title_shadow.get_width() // 2 + 3, 83))
-        title = FONT.render("Achilles & Patroclus", False, WHITE)
+        title = FONT.render("ACHILLES AND PATROCLUS", False, WHITE)
         SCREEN.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
         
         for button in buttons:
@@ -822,7 +1001,19 @@ while True:
         SCREEN.blit(hint, (WIDTH // 2 - hint.get_width() // 2, 550))
 
     elif scene == "credits":
-        credits_lines = ["Achilles & Patroclus", "", "Created by Team 2", "", "Alan Haugh", "Dylan Mooney", "Cillian Lynch", "Jihan Xu"]
+        credits_lines = [
+            "ACHILLES AND PATROCLUS",
+            "",
+            "Created by Team 2",
+            "",
+            "Alan Haugh",
+            "Dylan Mooney",
+            "Cillian Lynch",
+            "Jihan Xu",
+            "",
+            "",
+            "Thanks for playing!"
+        ]
         credits_y -= 2
         line_spacing = 50
         for i, line in enumerate(credits_lines):
@@ -849,7 +1040,7 @@ while True:
             if start_round:
                 # Update other sprites 
                 player.update(dt)
-                enemy_instance.update(dt)
+                enemy_instance.update(dt)  # Update single enemy
                 
                 # Update projectiles
                 projectile_sprites.update(dt)
@@ -871,6 +1062,16 @@ while True:
                     patroclus.draw_animated(SCREEN)
                 else:
                     SCREEN.blit(sprite.image, sprite.rect)
+                    # Draw health bar for Chiron
+                    if isinstance(sprite, Chiron):
+                        sprite.draw_health_bar(SCREEN)
+            
+            # Draw blood spray effects
+            for spray in blood_sprays[:]:
+                if not spray.update(dt):
+                    blood_sprays.remove(spray)
+                spray.draw(SCREEN)
+            
             bard_companion.update()
             bard_companion.draw(SCREEN)
 
@@ -882,7 +1083,7 @@ while True:
                 health_bubble.blit(heart_surf, (20 + (i * 32), 11))
             SCREEN.blit(health_bubble, (20, 20))
 
-            ammo_txt = GAME_SMALL_FONT.render(f"Stones Left: {player.stones_left}", True, WHITE)
+            # Removed ammo display
             kills_txt = GAME_SMALL_FONT.render(f"Kills: {kill_count}/{WIN_TARGET}", True, GREEN if kill_count >= WIN_TARGET else WHITE)
             
             # Add timer display
@@ -893,8 +1094,8 @@ while True:
                 timer_txt = None
                 player_txt = None
             
-            panel_height = 90 + (60 if timer_txt else 0)
-            panel_w = max(ammo_txt.get_width(), kills_txt.get_width()) + 40
+            panel_height = 52 + (60 if timer_txt else 0)  # Reduced height since no ammo
+            panel_w = kills_txt.get_width() + 40
             if timer_txt:
                 panel_w = max(panel_w, timer_txt.get_width() + 40, player_txt.get_width() + 40)
             
@@ -903,9 +1104,7 @@ while True:
             pygame.draw.rect(stats_bubble, WHITE, (0, 0, panel_w, panel_height), width=2, border_radius=12)
             
             y_offset = 12
-            stats_bubble.blit(ammo_txt, (20, y_offset))
-            y_offset += 38
-            stats_bubble.blit(kills_txt, (20, y_offset))
+            stats_bubble.blit(kills_txt, (20, y_offset))  # Kills now at top
             
             if timer_txt and player_txt:
                 y_offset += 38
@@ -916,7 +1115,7 @@ while True:
             SCREEN.blit(stats_bubble, (WIDTH - panel_w - 20, 20))
 
             if not start_round:
-                prompt_surface = GAME_SMALL_FONT.render("Press '1' to start the round", True, WHITE)
+                prompt_surface = GAME_SMALL_FONT.render("Press SPACE or ENTER to start the round", True, WHITE)
                 SCREEN.blit(prompt_surface, prompt_surface.get_rect(center=(WIDTH // 2, 50)))
                 
                 # Pause timer while waiting for '1' to start

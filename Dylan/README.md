@@ -1,3 +1,0 @@
-Top down 2-D action game built in Python using Pygame. It features a three-level structure inspired by the mythological story of Achilles and Patroclus. The three levels span different parts of the myth/narrative. The player controls Achilles with Patroclus as a companion in short arena-based levels. Featuring a mix of wave based and boss style fights.
-
-A key gameplay and narrative feature is the companion system. Patroclus will remain with the player and assist by attacking enemies and healing the player periodically. The story culminates in the final level when Patroclus is removed from gameplay, leading to the final boss fight with Hector.

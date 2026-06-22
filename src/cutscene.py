@@ -159,30 +159,40 @@ def level3_cutscene(screen):
     )
 
 
-def victory_cutscene(screen):
-    """Victory ending"""
+def victory_cutscene(screen, player_name=None, timer=None):
+    """Victory ending with optional player stats"""
+    dialogue_lines = [
+        "Hector falls to Achilles' blade.",
+        "Vengeance is won, but at what cost?",
+        "Patroclus is gone, never to return.",
+        "Achilles stands victorious,",
+        "yet his heart remains heavy with grief."
+    ]
+    
+    # Add player stats if available
+    if player_name and timer:
+        final_time = timer.format_time()
+        dialogue_lines.append("")  # Empty line for spacing
+        dialogue_lines.append(f"{player_name}: {final_time}")
+    
     return draw_cutscene(
         screen,
         "Victory and Sorrow",
-        [
-            "Hector falls to Achilles' blade.",
-            "Vengeance is won, but at what cost?",
-            "Patroclus is gone, never to return.",
-            "Achilles stands victorious,",
-            "yet his heart remains heavy with grief."
-        ],
+        dialogue_lines,
         (40, 45, 50),
         GOLD
     )
 
 
-def play_cutscene(screen, cutscene_name):
+def play_cutscene(screen, cutscene_name, player_name=None, timer=None):
     """
     Play a cutscene by name
     
     Args:
         screen: pygame display surface
         cutscene_name: "level1", "level2", "intermission", "level3", or "victory"
+        player_name: Optional player name for victory screen
+        timer: Optional timer object for victory screen
     
     Returns:
         "continue" or "skip"
@@ -196,7 +206,10 @@ def play_cutscene(screen, cutscene_name):
     }
     
     if cutscene_name in cutscenes:
-        return cutscenes[cutscene_name](screen)
+        if cutscene_name == "victory":
+            return cutscenes[cutscene_name](screen, player_name, timer)
+        else:
+            return cutscenes[cutscene_name](screen)
     else:
         print(f"Unknown cutscene: {cutscene_name}")
         return "skip"

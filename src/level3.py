@@ -9,6 +9,45 @@ import random
 from . import cutscene
 from .animation_system import AnimatedPlayer  # Import animation system for player
 
+class BloodSpray:
+    """Blood spray particle effect when enemy is hit"""
+    def __init__(self, x, y):
+        self.particles = []
+        # Create 8-15 blood particles
+        num_particles = random.randint(8, 15)
+        for _ in range(num_particles):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(50, 150)
+            self.particles.append({
+                'x': x,
+                'y': y,
+                'vx': math.cos(angle) * speed,
+                'vy': math.sin(angle) * speed,
+                'life': random.uniform(0.3, 0.6),  # Lifetime in seconds
+                'size': random.randint(3, 7)
+            })
+    
+    def update(self, dt):
+        """Update particle positions and lifetimes"""
+        for particle in self.particles[:]:
+            particle['x'] += particle['vx'] * dt
+            particle['y'] += particle['vy'] * dt
+            particle['vy'] += 200 * dt  # Gravity
+            particle['life'] -= dt
+            if particle['life'] <= 0:
+                self.particles.remove(particle)
+        return len(self.particles) > 0  # Return True if still alive
+    
+    def draw(self, surface):
+        """Draw blood particles"""
+        for particle in self.particles:
+            alpha = int(255 * (particle['life'] / 0.6))  # Fade out
+            color = (180, 0, 0, min(255, alpha))
+            # Create a temporary surface with per-pixel alpha
+            particle_surf = pygame.Surface((particle['size'], particle['size']), pygame.SRCALPHA)
+            pygame.draw.circle(particle_surf, color, (particle['size'] // 2, particle['size'] // 2), particle['size'] // 2)
+            surface.blit(particle_surf, (int(particle['x']), int(particle['y'])))
+
 def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
     # Pause timer during cutscenes
     if timer and timer.is_running:
@@ -16,7 +55,7 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
     
     # Play intermission cutscene (between level 2 and 3)
     display_surface = pygame.display.set_mode((1280, 720))
-    pygame.display.set_caption("Pixel Game - Level 3: Dual Hand Slashes")
+    pygame.display.set_caption("Achilles and Patroclus - Level 3")
     
     intermission_result = cutscene.play_cutscene(display_surface, "intermission")
     # Continue regardless of skip
@@ -67,7 +106,7 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
     WINDOW_WIDTH   = 1280
     WINDOW_HEIGHT  = 720
     PLAYER_SPEED   = 400     
-    ENEMY_SPEED    = 150     
+    ENEMY_SPEED    = 200     # Increased from 150 to 200 (faster movement)
     ENEMY_SCALE    = 1.25  
 
     AXE_BASE_WIDTH        = 50    
@@ -88,7 +127,7 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
     WAVE_SCALE            = 2.0  
 
     display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-    pygame.display.set_caption("Pixel Game - Level 3: Dual Hand Slashes")
+    pygame.display.set_caption("Achilles and Patroclus - Level 3")
     clock = pygame.time.Clock()
 
     all_sprites = pygame.sprite.Group()
@@ -147,7 +186,7 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
                 self.direction = direction.normalize()
             else:
                 self.direction = pygame.Vector2(-1, 0)
-            self.speed = 250
+            self.speed = 350  # Increased from 250 to 350 (40% faster)
 
         def update(self, dt):
             self.rect.center += self.direction * self.speed * dt
@@ -216,8 +255,8 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
             # Initialize animated player
             self.animated_player = AnimatedPlayer(self.rect.x, self.rect.y, scale=1.0)
             
-            self.health = 500
-            self.max_health = 500
+            self.health = 250  # Reduced from 500 to 250 (halved)
+            self.max_health = 250  # Reduced from 500 to 250 (halved)
             
             self.is_charging = False
             self.charge_time = 0.0
@@ -361,6 +400,8 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
             # Check for enemy hits
             if strike_rect.colliderect(enemy.rect) and enemy.alive():
                 enemy.health -= damage
+                # Create blood spray effect
+                blood_sprays.append(BloodSpray(enemy.rect.centerx, enemy.rect.centery))
                 enemy.trigger_damage_animation()  # Trigger damage animation
                 rand_offset_x = random.randint(-25, 25)
                 rand_offset_y = random.randint(-35, 5)
@@ -476,8 +517,8 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
             self.rect = self.image.get_rect(center=((WINDOW_WIDTH * 0.8), (WINDOW_HEIGHT / 2)))
             
             self.speed = speed
-            self.health = 150  
-            self.max_health = 150
+            self.health = 400  # Increased from 300 to 400
+            self.max_health = 400  # Increased from 300 to 400
             self.wave_timer = 0.0
             self.wave_cooldown = 0.5
             
@@ -660,6 +701,9 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
 
     player = Player(all_sprites)
     enemy = Hector((all_sprites, enemy_sprites), 0, ENEMY_SCALE)
+    
+    # Blood spray effects
+    blood_sprays = []
 
     start = False
     # Elliptical boundary instead of rectangular
@@ -729,7 +773,7 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
                     if not win and not game_over:
                         is_paused = not is_paused
 
-                if event.key == pygame.K_1 and not is_paused and not game_over:
+                if (event.key == pygame.K_SPACE or event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER) and not is_paused and not game_over:
                     start = True
 
         # --- PAUSE GAME OVERLAY LOOP ---
@@ -793,11 +837,15 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
                         if player.rect.colliderect(proj.rect):
                             if isinstance(proj, PinkHeart):
                                 player.health -= 5
+                                # Create blood spray effect on player
+                                blood_sprays.append(BloodSpray(player.rect.centerx, player.rect.centery))
                                 player.is_frozen = True
                                 player.frozen_timer = 1.0
                                 proj.kill()
                             elif isinstance(proj, BlueWave):
-                                player.health -= 7  
+                                player.health -= 7
+                                # Create blood spray effect on player
+                                blood_sprays.append(BloodSpray(player.rect.centerx, player.rect.centery))
                                 proj.kill()
 
                     if player.health <= 0:
@@ -829,6 +877,12 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
                 else:
                     display_surface.blit(sprite.image, sprite.rect)
             
+            # Draw blood spray effects
+            for spray in blood_sprays[:]:
+                if not spray.update(dt):
+                    blood_sprays.remove(spray)
+                spray.draw(display_surface)
+            
             player.draw_weapon(display_surface)
             player.draw_health_bar(display_surface)
             enemy.draw_health_bar(display_surface)
@@ -842,7 +896,7 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
                 display_surface.blit(player_text, (WINDOW_WIDTH - player_text.get_width() - 30, 65))
 
             if not start:
-                lbl = UI_FONT.render("Press '1' to Start Final Showdown", True, (255, 255, 255))
+                lbl = UI_FONT.render("Press SPACE or ENTER to Start Final Showdown", True, (255, 255, 255))
                 display_surface.blit(lbl, lbl.get_rect(center=(WINDOW_WIDTH // 2, 50)))
                 control_lbl = UI_FONT.render("Hold LEFT MOUSE to charge and release to attack", True, (200, 200, 255))
                 display_surface.blit(control_lbl, control_lbl.get_rect(center=(WINDOW_WIDTH // 2, 80)))
@@ -911,8 +965,8 @@ def start_level_3(bard, timer=None, player_name="", game_sounds_enabled=True):
             if timer and timer.is_running:
                 timer.pause()
                 
-            # Automatically play victory cutscene
-            cutscene.play_cutscene(display_surface, "victory")
+            # Automatically play victory cutscene with player name and time
+            cutscene.play_cutscene(display_surface, "victory", player_name, timer)
             
             # Resume timer after cutscene
             if timer and timer.is_running:
