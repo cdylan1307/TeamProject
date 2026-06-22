@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donate - Achilles and Patroclus</title>
+    <link rel="stylesheet" href="Style.CSS">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <h1>ACHILLES & PATROCLUS</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="MainWebsite.html">Home</a></li>
+                <li><a href="MainWebsite.html#about">About</a></li>
+                <li><a href="MainWebsite.html#features">Features</a></li>
+                <li><a href="Trailer.html">Trailer</a></li>
+                <li><a href="Gallery.html">Gallery</a></li>
+                <li><a href="Credits.html">Credits</a></li>
+                <li><a href="Donate.html" class="active">Donate</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="donate-hero">
+        <div class="container">
+            <h1 class="page-title">Support Team 2</h1>
+            <p class="page-subtitle">Help us continue creating epic games and beautiful art</p>
+        </div>
+    </section>
+
+    <section class="donate-section">
+        <div class="container">
+            <div class="donate-content">
+                <div class="donate-info">
+                    <h2 class="section-title">Why Donate?</h2>
+                    <p>
+                        This game represents hundreds of hours of work from Team 2. Over 100 animation 
+                        frames hand-drawn pixel by pixel, thousands of lines of Python code written and 
+                        debugged, complex character movement systems, AI behaviors, and game mechanics 
+                        all crafted with dedication.
+                    </p>
+                    <p>
+                        Your donation helps support:
+                    </p>
+                    <ul class="donate-list">
+                        <li>💻 Future game development and programming projects</li>
+                        <li>🎨 More hand-drawn pixel art, animations, and designs</li>
+                        <li>📚 Learning resources, courses, and tools for the team</li>
+                        <li>☕ Coffee for those late-night coding and drawing sessions</li>
+                        <li>🎮 Game development software, IDEs, and art tools</li>
+                        <li>⚙️ Better hardware for faster development</li>
+                    </ul>
+                    <p class="donate-note">
+                        <strong>Note:</strong> This is a student project built from scratch. Every contribution, 
+                        no matter how small, means the world to us and motivates us to keep creating games!
+                    </p>
+                </div>
+
+                <div class="donate-form">
+                    <h3>Choose Your Support Level</h3>
+                    <div class="amount-display">
+                        <span class="currency">$</span>
+                        <span id="donationAmount" class="amount">5</span>
+                    </div>
+                    
+                    <input type="range" id="amountSlider" class="donation-slider" 
+                           min="1" max="100" value="5" step="1">
+                    
+                    <div class="slider-labels">
+                        <span>$1</span>
+                        <span>$100</span>
+                    </div>
+
+                    <div class="preset-amounts">
+                        <button class="preset-btn" onclick="setAmount(3)">$3</button>
+                        <button class="preset-btn" onclick="setAmount(5)">$5</button>
+                        <button class="preset-btn" onclick="setAmount(10)">$10</button>
+                        <button class="preset-btn" onclick="setAmount(25)">$25</button>
+                    </div>
+
+                    <div class="support-tiers">
+                        <div class="tier" id="tier-info">
+                            <h4>☕ Coffee Supporter</h4>
+                            <p>You're awesome! Every dollar helps.</p>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-large donate-btn" onclick="donate()">
+                        💛 Donate Now
+                    </button>
+
+                    <p class="payment-note">
+                        Payment processing would be integrated here<br>
+                        (PayPal, Stripe, Ko-fi, or similar service)
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="donate-impact alternate">
+        <div class="container">
+            <h2 class="section-title">Your Impact</h2>
+            <div class="impact-grid">
+                <div class="impact-card">
+                    <div class="impact-icon">🎨</div>
+                    <h4>$1 - $5</h4>
+                    <h5>Coffee Supporter</h5>
+                    <p>Fuel for late-night drawing sessions</p>
+                </div>
+                <div class="impact-card">
+                    <div class="impact-icon">🖌️</div>
+                    <h4>$6 - $15</h4>
+                    <h5>Art Enthusiast</h5>
+                    <p>Helps with pixel art tools and software</p>
+                </div>
+                <div class="impact-card">
+                    <div class="impact-icon">⚔️</div>
+                    <h4>$16 - $30</h4>
+                    <h5>Warrior Patron</h5>
+                    <p>Supports new character development</p>
+                </div>
+                <div class="impact-card">
+                    <div class="impact-icon">🏆</div>
+                    <h4>$31 - $50</h4>
+                    <h5>Legendary Supporter</h5>
+                    <p>Enables a whole new game level</p>
+                </div>
+                <div class="impact-card">
+                    <div class="impact-icon">👑</div>
+                    <h4>$51+</h4>
+                    <h5>Epic Benefactor</h5>
+                    <p>You're making new games possible!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="donate-thanks">
+        <div class="container">
+            <h2 class="section-title">Thank You!</h2>
+            <p class="thanks-text">
+                Whether you donate or simply enjoy our game, you're part of our journey. 
+                Team 2 appreciates every player, every viewer, and every supporter.
+            </p>
+            <div class="thanks-images">
+                <img src="../images/player.png" alt="Achilles" class="thanks-sprite">
+            </div>
+            <p class="thanks-signature">
+                With gratitude,<br>
+                <strong>Cillian, Alan, Dylan & Jihan</strong><br>
+                <em>Team 2</em>
+            </p>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Achilles & Patroclus</h3>
+                    <p>Made with passion by Team 2</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Explore</h3>
+                    <p><a href="Gallery.html" style="color: #daa520;">View Gallery</a> • 
+                       <a href="Credits.html" style="color: #daa520;">Credits</a></p>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p>Questions? Reach out to Team 2</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Achilles and Patroclus - Team 2</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const slider = document.getElementById('amountSlider');
+        const amountDisplay = document.getElementById('donationAmount');
+        const tierInfo = document.getElementById('tier-info');
+
+        const tiers = [
+            { max: 5, icon: '☕', title: 'Coffee Supporter', desc: "You're awesome! Every dollar helps." },
+            { max: 15, icon: '🖌️', title: 'Art Enthusiast', desc: "Thank you for supporting our art!" },
+            { max: 30, icon: '⚔️', title: 'Warrior Patron', desc: "You're helping create new characters!" },
+            { max: 50, icon: '🏆', title: 'Legendary Supporter', desc: "Wow! You're enabling whole new levels!" },
+            { max: 999, icon: '👑', title: 'Epic Benefactor', desc: "Incredible! You're making dreams reality!" }
+        ];
+
+        slider.oninput = function() {
+            const value = this.value;
+            amountDisplay.textContent = value;
+            updateTier(value);
+        };
+
+        function updateTier(amount) {
+            const tier = tiers.find(t => amount <= t.max);
+            tierInfo.innerHTML = `
+                <h4>${tier.icon} ${tier.title}</h4>
+                <p>${tier.desc}</p>
+            `;
+        }
+
+        function setAmount(amount) {
+            slider.value = amount;
+            amountDisplay.textContent = amount;
+            updateTier(amount);
+        }
+
+        function donate() {
+            const amount = slider.value;
+            alert(`Thank you for your generous donation of $${amount}!\n\nIn a real implementation, this would redirect to a payment processor like PayPal, Stripe, Ko-fi, or Buy Me A Coffee.\n\nTeam 2 appreciates your support! 💛`);
+        }
+    </script>
+</body>
+</html>
