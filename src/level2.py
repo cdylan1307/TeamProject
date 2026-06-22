@@ -128,12 +128,12 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
         player_x, player_y = checkpoint.get("p_x", 900), checkpoint.get("p_y", 500)
         kill_count = checkpoint.get("kills", 0)
         heart_value = checkpoint.get("hearts", START_HEARTS)
-        player_coins = checkpoint.get("coins", 100)
+        player_coins = checkpoint.get("coins", 0)
     else:
         player_x, player_y = 900, 500
         kill_count = 0
         heart_value = START_HEARTS
-        player_coins = 100  # Starting economy currency
+        player_coins = 0  # Starting economy currency - changed to 0
 
     # Initialize animated player and companion same as level 1
     animated_player = AnimatedPlayer(player_x, player_y, scale=PLAYER_SCALE)
@@ -183,6 +183,11 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
     audio_win_played = False
     audio_fail_played = False
     player_inventory = []
+    
+    # Add variables for colosseum ticket purchase
+    colosseum_ticket_bought = False
+    ticket_congratulations_timer = 0.0
+    ticket_congratulations_delay = 0.1
 
     # INITIALIZE DEALER: Top-right boundary position assignment
     level2_dealer = Dealer(MAX_X - 150, MIN_Y + 90, scale=0.5)
@@ -268,7 +273,7 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
             phantom_cooldown -= 1
 
         # --- GAME STATE UPDATE ---
-        if not game_won and not game_lost:
+        if not game_won and not game_lost and not colosseum_ticket_bought:
             
             # RUN DEALER COMPONENT PROCESSOR
             shop_action = level2_dealer.update(player_x, player_y, e_pressed, keys, enter_pressed)
@@ -281,6 +286,10 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
                     player_coins, purchased_item = level2_dealer.buy_item(shop_action, player_coins)
                     if purchased_item != "INSUFFICIENT_FUNDS":
                         player_inventory.append(purchased_item)
+                        # Check if Colosseum Ticket was purchased
+                        if purchased_item == "Colosseum Ticket":
+                            colosseum_ticket_bought = True
+                            level2_dealer.shop_open = False  # Close the shop
 
             # Freeze entity processing loop mechanics while shopping menu context is live
             if not level2_dealer.shop_open:
@@ -407,13 +416,13 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
                     
                     if math.hypot(player_center_x - enemy_x, player_center_y - enemy_y) <= SWORD_ATTACK_RANGE:
                         kill_count += 1
-                        player_coins += 25  # Reward bounty currency upon targets eliminated
+                        player_coins += 10  # Reward bounty currency upon targets eliminated - changed to 10
                         has_hit_enemy = True 
                         enemy_x, enemy_y = 200, 500
                     
                     elif mole_state == "active" and math.hypot(player_center_x - enemy2_x, player_center_y - enemy2_y) <= SWORD_ATTACK_RANGE:
                         has_hit_enemy = True
-                        player_coins += 15  
+                        player_coins += 10  # Changed to 10 coins
                         mole_hole_x = random.randint(200, WIDTH - 200)
                         mole_hole_y = random.randint(MIN_Y + 30, MAX_Y - 30)
                         enemy2_x, enemy2_y = mole_hole_x, mole_hole_y
@@ -435,6 +444,7 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
                     blocked_by_sword = False
                     if is_swinging and math.hypot(player_center_x - projectile["x"], player_center_y - projectile["y"]) <= SWORD_ATTACK_RANGE:
                         blocked_by_sword = True
+                        player_coins += 10  # Give 10 coins for cancelling arrow with sword
                     
                     if blocked_by_sword: 
                         continue  
@@ -476,8 +486,8 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
         # Render Dealer Environment Elements
         level2_dealer.draw(screen, player_x, player_y, player_coins)
 
-        # Only draw game entities when shop is closed
-        if not level2_dealer.shop_open:
+        # Only draw game entities when shop is closed AND colosseum ticket congratulations is not active
+        if not level2_dealer.shop_open and not colosseum_ticket_bought:
             # Draw animated player and companion
             animated_player.draw(screen)
             animated_patroclus.draw(screen)
@@ -542,7 +552,47 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
             heart_y = 155 if (timer and timer.is_running and player_name) else 105
             draw_heart(screen, x=35 + (h * 35), y=heart_y, size=24)
 
-        if game_won:
+        # Handle Colosseum Ticket congratulations screen
+        if colosseum_ticket_bought:
+            ticket_congratulations_timer += clock.get_time() / 1000.0  # Add elapsed time in seconds
+            
+            if not audio_win_played:
+                if game_sounds_enabled and win_sound: win_sound.play()
+                audio_win_played = True
+            
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            screen.blit(overlay, (0, 0))
+            
+            # Congratulations message
+            congrats_surface = FONT_WIN.render("CONGRATULATIONS!", True, (255, 215, 0))
+            screen.blit(congrats_surface, congrats_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 80)))
+            
+            secret_surface = FONT_SCORE.render("You found the secret key that goes to the final level!", True, (255, 255, 255))
+            screen.blit(secret_surface, secret_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 20)))
+
+            level3_btn_rect = pygame.Rect((WIDTH // 2 - 120, HEIGHT // 2 + 50), (240, 65))
+            
+            # Only allow clicking after the delay period
+            if ticket_congratulations_timer >= ticket_congratulations_delay:
+                if level3_btn_rect.collidepoint(mouse_pos):
+                    pygame.draw.rect(screen, (80, 80, 80), level3_btn_rect, border_radius=10)
+                    if left_click_pressed:
+                        if game_sounds_enabled and click_sound: click_sound.play()
+                        return "completed", None  # This will trigger level 3
+                else:
+                    pygame.draw.rect(screen, (45, 45, 45), level3_btn_rect, border_radius=10)
+            else:
+                # Button disabled during delay
+                pygame.draw.rect(screen, (45, 45, 45), level3_btn_rect, border_radius=10)
+
+            # Always show "Go to Level 3" text
+            btn_text = FONT_BUTTON.render("Go to Level 3", True, (255, 255, 255))
+
+            pygame.draw.rect(screen, (200, 200, 200), level3_btn_rect, 3, border_radius=10)
+            screen.blit(btn_text, btn_text.get_rect(center=level3_btn_rect.center))
+
+        elif game_won:
             victory_screen_timer += clock.get_time() / 1000.0  # Add elapsed time in seconds
             
             if not audio_win_played:
@@ -596,7 +646,7 @@ def start_level_2(bard, sfx_enabled=True, checkpoint=None, timer=None, player_na
                     enemy_x, enemy_y = 200, 500
                     kill_count = 0
                     heart_value = START_HEARTS
-                    player_coins = 100
+                    player_coins = 0
                     projectiles.clear()
                     audio_fail_played = False
                     game_lost = False
