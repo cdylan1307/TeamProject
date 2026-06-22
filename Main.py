@@ -19,7 +19,7 @@ pygame.mixer.init()
 
 WIDTH, HEIGHT = 1280, 720  
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Pixel Game - Master Engine")
+pygame.display.set_caption("Achilles Patroclus - Master Engine")
 
 FPS = 60
 clock = pygame.time.Clock()
@@ -734,9 +734,9 @@ while True:
         SCREEN.blit(game_bg, (0, 0))
 
     if scene == "splash":
-        shadow_surf = GAME_LARGE_FONT.render("PIXEL GAME", True, SHADOW_COLOR)
+        shadow_surf = GAME_LARGE_FONT.render("Achilles Patroclus", True, SHADOW_COLOR)
         SCREEN.blit(shadow_surf, (WIDTH // 2 - shadow_surf.get_width() // 2 + 5, 105))
-        title_surf = GAME_LARGE_FONT.render("PIXEL GAME", True, WHITE)
+        title_surf = GAME_LARGE_FONT.render("Achilles Patroclus", True, WHITE)
         SCREEN.blit(title_surf, (WIDTH // 2 - title_surf.get_width() // 2, 100))
         
         is_hovered = triangle_bounding_rect.collidepoint(mouse_pos)
@@ -775,9 +775,9 @@ while True:
 
     elif scene == "menu":
         SCREEN.blit(menu_shadow, (0, 0))
-        title_shadow = FONT.render("PIXEL GAME", False, SHADOW_COLOR)
+        title_shadow = FONT.render("Achilles Patroclus", False, SHADOW_COLOR)
         SCREEN.blit(title_shadow, (WIDTH // 2 - title_shadow.get_width() // 2 + 3, 83))
-        title = FONT.render("PIXEL GAME", False, WHITE)
+        title = FONT.render("Achilles Patroclus", False, WHITE)
         SCREEN.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
         
         for button in buttons:
@@ -822,7 +822,7 @@ while True:
         SCREEN.blit(hint, (WIDTH // 2 - hint.get_width() // 2, 550))
 
     elif scene == "credits":
-        credits_lines = ["PIXEL GAME", "", "Created by Team 2", "", "Alan Haugh", "Dylan Mooney", "Cillian Lynch", "Jihan Xu"]
+        credits_lines = ["Achilles Patroclus", "", "Created by Team 2", "", "Alan Haugh", "Dylan Mooney", "Cillian Lynch", "Jihan Xu"]
         credits_y -= 2
         line_spacing = 50
         for i, line in enumerate(credits_lines):

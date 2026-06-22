@@ -28,12 +28,14 @@ class Dealer:
             {"name": "Battle Axe", "color": (255, 0, 0), "cost": 15, "image": "images/axeattack/pixil-frame-0 (4).png"},
             {"name": "Sword", "color": (0, 0, 255), "cost": 15, "image": "images/swordattack/pixil-frame-0.png"},
             {"name": "Spear", "color": (200, 200, 0), "cost": 15, "image": "images/spearattack/pixil-frame-0.png"},
-            {"name": "Colosseum Ticket", "color": (0, 255, 0), "cost": 15, "image": "images/colosseumticket.png"}
+            {"name": "Colosseum Ticket", "color": (0, 255, 0), "cost": 50, "image": "images/colosseumticket.png"}
         ]
         
         self._load_item_images()
         self.font_large = pygame.font.SysFont("Arial", 48, bold=True)
         self.font_small = pygame.font.SysFont("Arial", 24, bold=True)
+        self.insufficient_funds_message = ""
+        self.message_timer = 0
         
     def _load_item_images(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -56,6 +58,12 @@ class Dealer:
         return (dx * dx + dy * dy) ** 0.5 <= self.interaction_distance
     
     def update(self, player_x: int, player_y: int, e_pressed: bool, keys, enter_pressed) -> int:
+        # Update message timer
+        if self.message_timer > 0:
+            self.message_timer -= 1
+            if self.message_timer <= 0:
+                self.insufficient_funds_message = ""
+        
         if e_pressed and self.is_player_close(player_x, player_y):
             self.shop_open = not self.shop_open
         
@@ -83,7 +91,14 @@ class Dealer:
         item = self.items[item_index]
         if player_coins >= item["cost"]:
             return player_coins - item["cost"], item["name"]
-        return player_coins, "INSUFFICIENT_FUNDS"
+        else:
+            # Set insufficient funds message
+            if item["name"] == "Colosseum Ticket":
+                self.insufficient_funds_message = "You don't have enough coins. Use sword to kill the arrow and the enemy2 to get 10 coins for each."
+            else:
+                self.insufficient_funds_message = "You don't have enough coins!"
+            self.message_timer = 180  # Display message for 3 seconds at 60 FPS
+            return player_coins, "INSUFFICIENT_FUNDS"
     
     def draw(self, surface: pygame.Surface, player_x: int, player_y: int, player_coins: int):
         surface.blit(self.image, self.rect)
@@ -143,3 +158,18 @@ class Dealer:
         instruction_text = "WASD / ARROWS Select   |   ENTER Buy   |   E Close"
         text = self.font_small.render(instruction_text, True, (200, 200, 200))
         surface.blit(text, (mx + (self.mw - text.get_width()) // 2, my + self.mh - 50))
+        
+        # Display insufficient funds message if active
+        if self.insufficient_funds_message:
+            message_surface = self.font_small.render(self.insufficient_funds_message, True, (255, 100, 100))
+            # Create background for better visibility
+            bg_rect = pygame.Rect(0, 0, message_surface.get_width() + 20, message_surface.get_height() + 10)
+            bg_rect.center = (self.mw // 2, my + self.mh - 120)
+            bg_surface = pygame.Surface((bg_rect.width, bg_rect.height))
+            bg_surface.fill((0, 0, 0))
+            bg_surface.set_alpha(200)
+            surface.blit(bg_surface, bg_rect)
+            
+            # Center the message
+            message_rect = message_surface.get_rect(center=(self.mw // 2, my + self.mh - 115))
+            surface.blit(message_surface, message_rect)
